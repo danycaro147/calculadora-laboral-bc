@@ -8,7 +8,7 @@ import 'theme.dart';
 /// Abre un artículo por su clave ("87", "3 bis").
 Future<void> openArticle(BuildContext context, String key) async {
   try {
-    final ley = await LeyRepo.cargar();
+    final ley = LeyRepo.actual ?? await LeyRepo.cargar();
     final i = ley.indice(key);
     if (!context.mounted) return;
     if (i == null) {
@@ -65,6 +65,7 @@ class _LawTabState extends State<LawTab> {
     final tt = Theme.of(context).textTheme;
     return FutureBuilder<Ley>(
       future: _ley,
+      initialData: LeyRepo.actual,
       builder: (context, snap) {
         if (snap.hasError) {
           return const Padding(

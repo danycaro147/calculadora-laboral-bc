@@ -108,9 +108,12 @@ Ley _parse(String raw) {
 class LeyRepo {
   static Future<Ley>? _f;
 
+  /// La ley ya cargada (null mientras carga).
+  static Ley? actual;
+
   static Future<Ley> cargar() => _f ??= () async {
         final raw = await rootBundle.loadString('assets/lft/lft.json');
-        return compute(_parse, raw);
+        return actual = await compute(_parse, raw);
       }();
 }
 
