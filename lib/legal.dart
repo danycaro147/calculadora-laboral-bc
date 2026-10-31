@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'braincode.dart';
+import 'theme.dart';
 
 /// Textos legales. Se publican también en TERMINOS.md y PRIVACIDAD.md.
 class Legal {
@@ -107,33 +108,40 @@ class LegalPage extends StatelessWidget {
 
   static Route privacy() => MaterialPageRoute(
       builder: (_) => const LegalPage(
-          title: 'Privacidad',
-          headline: 'Tus datos no salen de tu teléfono.',
+          title: 'Aviso de privacidad',
+          headline: 'Tus datos no salen de tu teléfono',
           sections: Legal.privacidad));
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
+    final t = Tok.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-          children: [
-            Text(headline,
-                style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            Text('Última actualización: 30 de octubre de 2026',
-                style: tt.bodySmall),
-            for (final s in sections) ...[
-              const SizedBox(height: 18),
-              Text(s.$1,
-                  style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 6),
-              Text(s.$2, style: tt.bodyMedium?.copyWith(height: 1.5)),
-            ],
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 32),
+        children: [
+          Text(headline,
+              style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -.4,
+                  color: t.text,
+                  height: 1.2)),
+          const SizedBox(height: 6),
+          Text('Última actualización: 30 de octubre de 2026',
+              style: TextStyle(fontSize: 13, color: t.text3)),
+          const SizedBox(height: 10),
+          for (final (i, s) in sections.indexed) ...[
+            const SizedBox(height: 18),
+            Text('${i + 1}. ${s.$1}',
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w700, color: t.text)),
+            const SizedBox(height: 6),
+            Text(s.$2,
+                textAlign: TextAlign.justify,
+                style: TextStyle(fontSize: 15, height: 1.6, color: t.text2)),
           ],
-        ),
+        ],
       ),
     );
   }

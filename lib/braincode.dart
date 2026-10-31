@@ -18,13 +18,13 @@ class BrainCode {
       '?subject=Contacto%20desde%20Calculadora%20Laboral';
 
   static const services = [
-    (Icons.phone_iphone_rounded, 'Apps móviles',
+    (Icons.smartphone_outlined, 'Apps móviles',
         'Para tu equipo en campo y tus clientes, incluso sin conexión.'),
-    (Icons.code_rounded, 'Software a la medida',
+    (Icons.code, 'Software a la medida',
         'Portales, cotizadores y herramientas que reemplazan papel y Excel.'),
-    (Icons.hub_rounded, 'Odoo ERP',
+    (Icons.hub_outlined, 'Odoo ERP',
         'Implementación, nómina, facturación CFDI 4.0 y capacitación.'),
-    (Icons.cloud_rounded, 'Nube AWS y Azure',
+    (Icons.cloud_outlined, 'Nube AWS y Azure',
         'Migración, respaldos verificados, seguridad y control de costos.'),
   ];
 
@@ -90,11 +90,10 @@ class BrainCodePromoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final t = Tok.of(context);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+        padding: const EdgeInsets.fromLTRB(16, 16, 6, 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -102,14 +101,15 @@ class BrainCodePromoCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
-                  padding: const EdgeInsets.all(8),
+                  width: 44,
+                  height: 44,
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(14),
+                    color: t.surface2,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: t.border),
                   ),
-                  child: const BrainCodeMark(size: 32),
+                  child: BrainCodeMark(size: 30, color: t.text),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -117,20 +117,20 @@ class BrainCodePromoCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('DE LOS CREADORES DE ESTA APP',
-                          style: tt.labelSmall?.copyWith(
-                              color: cs.onSurfaceVariant,
-                              letterSpacing: .6,
-                              fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              fontSize: 11,
+                              letterSpacing: .8,
+                              fontWeight: FontWeight.w700,
+                              color: t.text3)),
                       const SizedBox(height: 4),
-                      Text('¿Tu empresa necesita una app o un sistema de nómina?',
-                          style: tt.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700)),
+                      Text('Soluciones de software para tu empresa',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700, color: t.text)),
                       const SizedBox(height: 4),
                       Text(
-                        'En BrainCode México Tech creamos apps móviles, software a '
-                        'la medida y soluciones con Odoo ERP.',
-                        style: tt.bodyMedium
-                            ?.copyWith(color: cs.onSurfaceVariant, height: 1.35),
+                        'BrainCode México Tech desarrolla apps móviles, software a la '
+                        'medida e implementa Odoo ERP con nómina y facturación.',
+                        style: TextStyle(fontSize: 14, color: t.text2, height: 1.45),
                       ),
                     ],
                   ),
@@ -138,21 +138,16 @@ class BrainCodePromoCard extends StatelessWidget {
                 IconButton(
                   tooltip: 'Ocultar',
                   visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.close_rounded,
-                      size: 20, color: cs.onSurfaceVariant),
+                  icon: Icon(Icons.close, size: 18, color: t.text3),
                   onPressed: onDismiss,
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () =>
-                    BrainCode.open(context, BrainCode.site('tarjeta_inicio')),
-                iconAlignment: IconAlignment.end,
-                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                label: const Text('Conocer BrainCode'),
+            Padding(
+              padding: const EdgeInsets.only(left: 50),
+              child: TextButton(
+                onPressed: () => BrainCode.open(context, BrainCode.site('tarjeta_inicio')),
+                child: const Text('Conocer más  →'),
               ),
             ),
           ],
@@ -167,104 +162,91 @@ class AboutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final t = Tok.of(context);
     final version = AppScope.of(context).appVersion;
     return Scaffold(
       appBar: AppBar(title: const Text('Acerca de')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          children: [
-            const SizedBox(height: 8),
-            Center(
-              child: Container(
-                width: 96,
-                height: 96,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                    color: Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: cs.outlineVariant.withAlpha(110))),
-                child: const BrainCodeMark(size: 68),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(BrainCode.name,
-                textAlign: TextAlign.center,
-                style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 4),
-            Text(BrainCode.tagline,
-                textAlign: TextAlign.center,
-                style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant)),
-            const SizedBox(height: 20),
-            Text(
-              'Hicimos Calculadora Laboral para que cualquier persona conozca lo '
-              'que le corresponde por ley. Es gratuita, no tiene anuncios de '
-              'terceros y no recopila tus datos. Si tu empresa necesita tecnología, '
-              'nos encantará ayudarte.',
-              textAlign: TextAlign.center,
-              style: tt.bodyMedium?.copyWith(height: 1.45),
-            ),
-            const SectionTitle('Lo que hacemos'),
-            Card(
-              child: Column(
-                children: [
-                  for (final (i, s) in BrainCode.services.indexed) ...[
-                    if (i > 0) const Divider(indent: 72),
-                    ListTile(
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      leading: CircleAvatar(
-                        backgroundColor: cs.primaryContainer,
-                        child: Icon(s.$1, color: cs.onPrimaryContainer, size: 22),
-                      ),
-                      title: Text(s.$2,
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text(s.$3),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: () => BrainCode.open(context, BrainCode.site('acerca_de')),
-              icon: const Icon(Icons.public_rounded),
-              label: const Text('Visitar braincode.com.mx'),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: () => BrainCode.open(context, BrainCode.mail),
-              icon: const Icon(Icons.mail_outline_rounded),
-              label: const Text(BrainCode.email),
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.gavel_rounded),
-              title: const Text('Términos de uso'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.of(context).push(LegalPage.terms()),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.lock_outline_rounded),
-              title: const Text('Privacidad'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.of(context).push(LegalPage.privacy()),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                  '© 2026 ${BrainCode.name}. Todos los derechos reservados.'
-                  '${version.isNotEmpty ? '\nCalculadora Laboral · versión $version' : ''}',
-                  textAlign: TextAlign.center,
-                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-            ),
-          ],
+      bottomNavigationBar: BottomActionBar(children: [
+        OutlinedButton(
+          onPressed: () => BrainCode.open(context, BrainCode.mail),
+          child: const Text('Escribir correo'),
         ),
+        FilledButton(
+          onPressed: () => BrainCode.open(context, BrainCode.site('acerca_de')),
+          child: const Text('Visitar sitio web'),
+        ),
+      ]),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(22, 8, 22, 28),
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                    color: t.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: t.border)),
+                child: BrainCodeMark(size: 46, color: t.text),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(BrainCode.name,
+                        style: TextStyle(
+                            fontSize: 21, fontWeight: FontWeight.w700, color: t.text)),
+                    const SizedBox(height: 2),
+                    Text(BrainCode.tagline,
+                        style: TextStyle(fontSize: 14.5, color: t.text2)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          const Para(
+            'Desarrollamos Calculadora Laboral para que cualquier persona conozca lo '
+            'que le corresponde conforme a la ley. Es gratuita, no contiene publicidad '
+            'de terceros y no recopila datos personales. Si tu empresa necesita '
+            'tecnología, con gusto te ayudamos.',
+          ),
+          const SectionTitle('Servicios'),
+          GroupCard(children: [
+            for (final s in BrainCode.services)
+              RowTile(icon: s.$1, title: s.$2, subtitle: s.$3),
+          ]),
+          const SectionTitle('Contacto'),
+          GroupCard(children: [
+            RowTile(
+                icon: Icons.public,
+                title: 'braincode.com.mx',
+                onTap: () => BrainCode.open(context, BrainCode.site('acerca_de'))),
+            RowTile(
+                icon: Icons.mail_outline,
+                title: BrainCode.email,
+                onTap: () => BrainCode.open(context, BrainCode.mail)),
+          ]),
+          const SectionTitle('Legal'),
+          GroupCard(children: [
+            RowTile(
+                icon: Icons.gavel_outlined,
+                title: 'Términos de uso',
+                onTap: () => Navigator.of(context).push(LegalPage.terms())),
+            RowTile(
+                icon: Icons.lock_outline,
+                title: 'Aviso de privacidad',
+                onTap: () => Navigator.of(context).push(LegalPage.privacy())),
+          ]),
+          const SizedBox(height: 20),
+          Text(
+              '© 2026 ${BrainCode.name}. Todos los derechos reservados.'
+              '${version.isNotEmpty ? '\nCalculadora Laboral · Versión $version' : ''}',
+              style: TextStyle(fontSize: 12.5, color: t.text3, height: 1.5)),
+        ],
       ),
     );
   }

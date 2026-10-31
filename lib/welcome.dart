@@ -18,25 +18,24 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
+    final t = Tok.of(context);
 
-    Widget feature(IconData i, String t, String d) => Padding(
-          padding: const EdgeInsets.only(bottom: 14),
+    Widget feature(IconData i, String title, String d) => Padding(
+          padding: const EdgeInsets.only(bottom: 18),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              IconTile(i),
+              Icon(i, color: t.primary, size: 22),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(t, style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 2),
-                    Text(d,
-                        style: tt.bodyMedium
-                            ?.copyWith(color: cs.onSurfaceVariant, height: 1.35)),
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700, color: t.text)),
+                    const SizedBox(height: 3),
+                    Para(d, size: 14.5),
                   ],
                 ),
               ),
@@ -45,101 +44,111 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         );
 
     return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-          children: [
-            Center(
-              child: Container(
-                width: 112,
-                height: 112,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.brand, AppColors.brandDeep],
+      bottomNavigationBar: BottomActionBar(
+        top: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => setState(() => _ok = !_ok),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Checkbox(
+                    value: _ok,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    onChanged: (v) => setState(() => _ok = v ?? false)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                        'He leído y acepto los Términos de uso y entiendo que los '
+                        'resultados son estimaciones.',
+                        style: TextStyle(fontSize: 14, color: t.text, height: 1.4)),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                        color: AppColors.brand.withAlpha(60),
-                        blurRadius: 30,
-                        spreadRadius: -4,
-                        offset: const Offset(0, 14)),
-                  ],
                 ),
-                child: const Icon(Icons.calculate_rounded, color: Colors.white, size: 60),
-              ),
+              ],
             ),
-            const SizedBox(height: 24),
+          ),
+        ),
+        children: [
+          FilledButton(
+            onPressed: _ok ? () => AppScope.read(context).acceptTerms() : null,
+            child: const Text('Aceptar y continuar'),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+          children: [
+            const Align(alignment: Alignment.centerLeft, child: AppMark(size: 56)),
+            const SizedBox(height: 28),
             Text('Calcula lo que te corresponde por ley',
-                textAlign: TextAlign.center,
-                style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w800, height: 1.2)),
-            const SizedBox(height: 10),
-            Text('Aguinaldo, vacaciones, finiquito y liquidación en segundos.',
-                textAlign: TextAlign.center,
-                style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant, height: 1.4)),
-            const SizedBox(height: 24),
-            feature(Icons.calculate_rounded, 'Cálculos claros',
-                'Cada concepto te dice de dónde sale y qué artículo lo respalda.'),
-            feature(Icons.menu_book_rounded, 'La ley completa, sin internet',
-                'Busca en todos los artículos de la Ley Federal del Trabajo.'),
-            feature(Icons.lock_rounded, 'Privada',
-                'Tus datos no salen de tu teléfono.'),
+                style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -.6,
+                    height: 1.15,
+                    color: t.text)),
+            const SizedBox(height: 12),
+            const Para(
+                'Aguinaldo, vacaciones, finiquito y liquidación conforme a la Ley '
+                'Federal del Trabajo, con el texto completo de la ley disponible sin '
+                'conexión.',
+                size: 16),
+            const SizedBox(height: 28),
+            feature(Icons.fact_check_outlined, 'Cálculos fundamentados',
+                'Cada concepto muestra su fórmula y el artículo de la ley que lo respalda.'),
+            feature(Icons.menu_book_outlined, 'Ley Federal del Trabajo',
+                'Texto vigente con buscador, índice y referencias.'),
+            feature(Icons.lock_outline, 'Privacidad',
+                'Tus datos se procesan en tu teléfono y no se envían a ningún servidor.'),
             const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Icon(Icons.balance_rounded, color: cs.primary),
-                      const SizedBox(width: 8),
-                      Text('Antes de empezar',
-                          style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-                    ]),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Los resultados son estimaciones informativas y no sustituyen la '
-                      'asesoría de un abogado o de la PROFEDET. Esta app no pertenece al '
-                      'gobierno; el texto de la ley proviene de la Cámara de Diputados.',
-                      style: tt.bodyMedium?.copyWith(height: 1.45),
-                    ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      children: [
-                        TextButton(
-                            onPressed: () => Navigator.of(context).push(LegalPage.terms()),
-                            child: const Text('Términos de uso')),
-                        TextButton(
-                            onPressed: () =>
-                                Navigator.of(context).push(LegalPage.privacy()),
-                            child: const Text('Privacidad')),
-                      ],
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      value: _ok,
-                      onChanged: (v) => setState(() => _ok = v ?? false),
-                      title: const Text(
-                          'Entiendo que es una estimación y acepto los términos de uso.'),
-                    ),
-                  ],
-                ),
+            Notice(
+              legal: true,
+              icon: Icons.balance_outlined,
+              title: 'Antes de comenzar',
+              text: 'Los resultados son estimaciones informativas y no sustituyen la '
+                  'asesoría de un abogado o de la PROFEDET. Esta aplicación no pertenece '
+                  'al gobierno; el texto de la ley proviene de la Cámara de Diputados.',
+              action: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Wrap(spacing: 16, children: [
+                  _Link('Términos de uso',
+                      () => Navigator.of(context).push(LegalPage.terms())),
+                  _Link('Aviso de privacidad',
+                      () => Navigator.of(context).push(LegalPage.privacy())),
+                ]),
               ),
             ),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _ok ? () => AppScope.read(context).acceptTerms() : null,
-              child: const Text('Aceptar y continuar'),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
             const MadeByBrainCode(),
           ],
         ),
       ),
     );
   }
+}
+
+class _Link extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  const _Link(this.text, this.onTap);
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Tok.of(context).noticeText,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Tok.of(context).noticeText)),
+        ),
+      );
 }

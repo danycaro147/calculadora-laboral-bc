@@ -1,7 +1,7 @@
 name: calculadora_laboral
 description: Calculadora de aguinaldo, vacaciones, finiquito y liquidación con la Ley Federal del Trabajo. Por BrainCode México Tech.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
@@ -34,3 +34,8 @@ flutter:
           weight: 700
         - asset: assets/fonts/Inter-Bold.otf
           weight: 800
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora-Regular.ttf
+        - asset: assets/fonts/Lora-SemiBold.ttf
+          weight: 600

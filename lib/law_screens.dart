@@ -16,8 +16,8 @@ Future<void> openArticle(BuildContext context, String key) async {
           SnackBar(content: Text('No se encontró el artículo $key.')));
       return;
     }
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ArticleScreen(ley: ley, index: i)));
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => ArticleScreen(ley: ley, index: i)));
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -35,11 +35,17 @@ const temasFrecuentes = [
   ('Prima de antigüedad', '162'),
   ('Jornada', '61'),
   ('Horas extra', '67'),
-  ('Día de descanso', '69'),
-  ('Días festivos', '74'),
+  ('Descanso semanal', '69'),
+  ('Días de descanso obligatorio', '74'),
   ('Maternidad', '170'),
-  ('Renuncia', '53'),
+  ('Terminación', '53'),
 ];
+
+String _tituloCorto(String t) => t.split(' · ').first;
+String _tituloNombre(String t) {
+  final p = t.split(' · ');
+  return p.length > 1 ? p.sublist(1).join(' ') : '';
+}
 
 class LawTab extends StatefulWidget {
   const LawTab({super.key});
@@ -61,41 +67,37 @@ class _LawTabState extends State<LawTab> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final t = Tok.of(context);
     return FutureBuilder<Ley>(
       future: _ley,
       initialData: LeyRepo.actual,
       builder: (context, snap) {
         if (snap.hasError) {
           return const Padding(
-            padding: EdgeInsets.all(24),
-            child: InfoBox(
-                warning: true,
-                icon: Icons.error_outline_rounded,
+            padding: EdgeInsets.all(20),
+            child: Notice(
+                icon: Icons.error_outline,
                 text: 'No se pudo cargar el texto de la ley.'),
           );
         }
-        if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final ley = snap.data!;
         final results = buscar(ley, _query);
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
           children: [
             TextField(
               controller: _q,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Busca una palabra o número de artículo',
-                prefixIcon: const Icon(Icons.search_rounded),
+                hintText: 'Buscar palabra o número de artículo',
+                prefixIcon: Icon(Icons.search, color: t.text3),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
                         tooltip: 'Borrar',
-                        icon: const Icon(Icons.close_rounded),
+                        icon: const Icon(Icons.close),
                         onPressed: () => setState(() {
                           _q.clear();
                           _query = '';
@@ -105,84 +107,131 @@ class _LawTabState extends State<LawTab> {
               onChanged: (v) => setState(() => _query = v),
             ),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(Icons.verified_rounded, size: 16, color: cs.primary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                      '${ley.articulos.length} artículos · última reforma DOF '
-                      '${ley.versionLegible}',
-                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-                ),
-              ],
-            ),
+            Text(
+                '${ley.articulos.length} artículos · Última reforma publicada en el DOF '
+                'el ${ley.versionLegible}',
+                style: TextStyle(fontSize: 13, color: t.text3)),
             if (_query.trim().isEmpty) ...[
               const SectionTitle('Temas frecuentes'),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final t in temasFrecuentes)
-                    ActionChip(
-                      label: Text('${t.$1} · ${t.$2}'),
-                      onPressed: () => openArticle(context, t.$2),
-                    ),
-                ],
-              ),
-              const SectionTitle('Índice'),
-              Card(
-                child: Column(
-                  children: [
-                    for (final (i, t) in ley.titulos.indexed) ...[
-                      if (i > 0) const Divider(indent: 16),
-                      ListTile(
-                        title: Text(_tituloCorto(t.$1),
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(_tituloNombre(t.$1),
-                            maxLines: 2, overflow: TextOverflow.ellipsis),
-                        trailing: Text('${t.$3}',
-                            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => TitleScreen(
-                                ley: ley, start: t.$2, count: t.$3, titulo: t.$1))),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ] else ...[
-              const SizedBox(height: 12),
-              if (results.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 48),
-                  child: Column(children: [
-                    Icon(Icons.search_off_rounded, size: 44, color: cs.outline),
-                    const SizedBox(height: 10),
-                    Text('Sin resultados para “$_query”', style: tt.titleMedium),
-                  ]),
-                )
-              else
-                Card(
-                  child: Column(
+              GroupCard(indent: 16, children: [
+                for (var i = 0; i < temasFrecuentes.length; i += 2)
+                  Row(
                     children: [
-                      for (final (i, h) in results.indexed) ...[
-                        if (i > 0) const Divider(indent: 16),
-                        ListTile(
-                          title: Text(ley.articulos[h.indice].nombre,
-                              style: const TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: Text(h.fragmento,
-                              maxLines: 3, overflow: TextOverflow.ellipsis),
-                          onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => ArticleScreen(
-                                  ley: ley, index: h.indice, highlight: _query))),
+                      for (final tm in temasFrecuentes.skip(i).take(2))
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => openArticle(context, tm.$2),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(tm.$1,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: t.text)),
+                                  ),
+                                  Text('Art. ${tm.$2}',
+                                      style: TextStyle(fontSize: 12.5, color: t.text3)),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      ],
                     ],
                   ),
-                ),
+              ]),
+              const SectionTitle('Índice'),
+              GroupCard(indent: 16, children: [
+                for (final tt in ley.titulos)
+                  InkWell(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => TitleScreen(
+                            ley: ley, start: tt.$2, count: tt.$3, titulo: tt.$1))),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(_tituloCorto(tt.$1).toUpperCase(),
+                                    style: TextStyle(
+                                        fontSize: 11.5,
+                                        letterSpacing: .8,
+                                        fontWeight: FontWeight.w700,
+                                        color: t.text3)),
+                                const SizedBox(height: 3),
+                                Text(
+                                    _tituloNombre(tt.$1).isEmpty
+                                        ? _tituloCorto(tt.$1)
+                                        : _tituloNombre(tt.$1),
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: t.text,
+                                        height: 1.3)),
+                              ],
+                            ),
+                          ),
+                          Text('${tt.$3}',
+                              style: TextStyle(fontSize: 13, color: t.text3)),
+                          Icon(Icons.chevron_right_rounded, color: t.text3),
+                        ],
+                      ),
+                    ),
+                  ),
+              ]),
+            ] else ...[
+              const SizedBox(height: 16),
+              if (results.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Text('No hay resultados para “$_query”.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, color: t.text2)),
+                )
+              else ...[
+                Text('${results.length} resultado${results.length == 1 ? '' : 's'}',
+                    style: TextStyle(fontSize: 13, color: t.text3)),
+                const SizedBox(height: 8),
+                GroupCard(indent: 16, children: [
+                  for (final h in results)
+                    InkWell(
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) =>
+                              ArticleScreen(ley: ley, index: h.indice, highlight: _query))),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(ley.articulos[h.indice].nombre,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: t.primary)),
+                            const SizedBox(height: 4),
+                            Text(h.fragmento,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontFamily: kSerif,
+                                    fontSize: 14.5,
+                                    color: t.text2,
+                                    height: 1.45)),
+                          ],
+                        ),
+                      ),
+                    ),
+                ]),
+              ],
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             const _SourceNote(),
           ],
         );
@@ -191,32 +240,26 @@ class _LawTabState extends State<LawTab> {
   }
 }
 
-String _tituloCorto(String t) => t.split(' · ').first;
-String _tituloNombre(String t) {
-  final p = t.split(' · ');
-  return p.length > 1 ? p.sublist(1).join(' ') : '';
-}
-
 class _SourceNote extends StatelessWidget {
   const _SourceNote();
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final t = Tok.of(context);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Texto obtenido de la publicación oficial de la Cámara de Diputados. '
-          'Esta app no pertenece al gobierno.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: cs.onSurfaceVariant),
+          'Texto obtenido de la publicación oficial de la Cámara de Diputados del H. '
+          'Congreso de la Unión. Esta aplicación no pertenece al gobierno. En caso de '
+          'discrepancia prevalece el texto publicado en el Diario Oficial de la Federación.',
+          textAlign: TextAlign.justify,
+          style: TextStyle(fontSize: 12.5, color: t.text3, height: 1.45),
         ),
         TextButton(
+          style: TextButton.styleFrom(padding: EdgeInsets.zero),
           onPressed: () => Native.openUrl(Legal.fuenteLey),
-          child: const Text('Ver fuente oficial'),
+          child: const Text('Consultar fuente oficial'),
         ),
       ],
     );
@@ -236,42 +279,59 @@ class TitleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
-    final items = <Widget>[];
-    String? cap;
+    final t = Tok.of(context);
+    final groups = <(String, List<int>)>[];
     for (var i = start; i < start + count; i++) {
-      final a = ley.articulos[i];
-      if (a.capitulo != cap) {
-        cap = a.capitulo;
-        if (cap.isNotEmpty) items.add(SectionTitle(cap));
-      }
-      items.add(Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Card(
-          child: ListTile(
-            title: Text(a.nombre, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(a.parrafos.isEmpty ? '' : a.parrafos.first,
-                maxLines: 2, overflow: TextOverflow.ellipsis),
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ArticleScreen(ley: ley, index: i))),
-          ),
-        ),
-      ));
+      final c = ley.articulos[i].capitulo;
+      if (groups.isEmpty || groups.last.$1 != c) groups.add((c, []));
+      groups.last.$2.add(i);
     }
     return Scaffold(
       appBar: AppBar(title: Text(_tituloCorto(titulo))),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Text(_tituloNombre(titulo),
-                style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-            Text('$count artículos',
-                style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
-            ...items,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+        children: [
+          Text(_tituloNombre(titulo),
+              style: TextStyle(
+                  fontSize: 22, fontWeight: FontWeight.w700, color: t.text, height: 1.25)),
+          const SizedBox(height: 4),
+          Text('$count artículos', style: TextStyle(fontSize: 14, color: t.text3)),
+          for (final g in groups) ...[
+            if (g.$1.isNotEmpty) SectionTitle(g.$1.replaceAll(' · ', ' — ')),
+            if (g.$1.isEmpty) const SizedBox(height: 16),
+            GroupCard(indent: 16, children: [
+              for (final i in g.$2)
+                InkWell(
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ArticleScreen(ley: ley, index: i))),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 72,
+                          child: Text('Art. ${ley.articulos[i].id}',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: t.primary)),
+                        ),
+                        Expanded(
+                          child: Text(
+                              ley.articulos[i].parrafos.isEmpty
+                                  ? ''
+                                  : ley.articulos[i].parrafos.first,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 14, color: t.text2, height: 1.4)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ]),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -291,17 +351,29 @@ class ArticleScreen extends StatefulWidget {
 class _ArticleScreenState extends State<ArticleScreen> {
   late int _i = widget.index;
   double _scale = 1.0;
+  final _scroll = ScrollController();
 
-  List<TextSpan> _spans(String text, TextStyle base, Color hl) {
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _go(int i) {
+    setState(() => _i = i);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+  }
+
+  List<TextSpan> _spans(String text, Color hl) {
     final terms = normalizar(widget.highlight)
         .split(RegExp(r'\s+'))
-        .where((t) => t.length > 2 && !RegExp(r'^\d+$').hasMatch(t))
+        .where((x) => x.length > 2 && !RegExp(r'^\d+$').hasMatch(x))
         .toList();
     if (terms.isEmpty) return [TextSpan(text: text)];
     final n = normalizar(text);
     final marks = List<bool>.filled(text.length, false);
-    for (final t in terms) {
-      for (final m in t.allMatches(n)) {
+    for (final term in terms) {
+      for (final m in term.allMatches(n)) {
         for (var k = m.start; k < m.end && k < marks.length; k++) {
           marks[k] = true;
         }
@@ -324,23 +396,24 @@ class _ArticleScreenState extends State<ArticleScreen> {
   Widget build(BuildContext context) {
     final ley = widget.ley;
     final a = ley.articulos[_i];
-    final tt = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
-    final body = tt.bodyLarge!.copyWith(height: 1.55, fontSize: 16 * _scale);
+    final t = Tok.of(context);
+    final body = TextStyle(
+        fontFamily: kSerif, fontSize: 17 * _scale, height: 1.65, color: t.text);
+    final hl = t.accent.withAlpha(70);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(a.nombre),
+        title: const Text('Ley Federal del Trabajo'),
         actions: [
           IconButton(
-            tooltip: 'Texto más chico',
+            tooltip: 'Reducir texto',
             onPressed: _scale > .85 ? () => setState(() => _scale -= .1) : null,
-            icon: const Icon(Icons.text_decrease_rounded),
+            icon: const Icon(Icons.text_decrease_outlined),
           ),
           IconButton(
-            tooltip: 'Texto más grande',
+            tooltip: 'Aumentar texto',
             onPressed: _scale < 1.6 ? () => setState(() => _scale += .1) : null,
-            icon: const Icon(Icons.text_increase_rounded),
+            icon: const Icon(Icons.text_increase_outlined),
           ),
           IconButton(
             tooltip: 'Compartir',
@@ -348,74 +421,85 @@ class _ArticleScreenState extends State<ArticleScreen> {
                 '${a.nombre} de la Ley Federal del Trabajo\n\n'
                 '${a.parrafos.join('\n\n')}\n\n'
                 'Última reforma DOF ${ley.versionLegible}. Fuente: Cámara de Diputados.'),
-            icon: const Icon(Icons.share_rounded),
+            icon: const Icon(Icons.ios_share_outlined),
           ),
+          const SizedBox(width: 4),
         ],
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-          children: [
-            if (a.titulo.isNotEmpty)
-              Text(a.titulo,
-                  style: tt.labelLarge?.copyWith(color: cs.primary, fontWeight: FontWeight.w700)),
-            if (a.capitulo.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(a.capitulo,
-                    style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
-              ),
-            const SizedBox(height: 16),
-            for (final p in a.parrafos)
-              Padding(
-                padding: EdgeInsets.only(
-                    bottom: 14,
-                    left: RegExp(r'^([IVXLC]+\.|[a-z]\))\s').hasMatch(p) ? 12 : 0),
-                child: SelectableText.rich(
-                  TextSpan(
-                      style: body,
-                      children: _spans(p, body, cs.primaryContainer)),
-                ),
-              ),
-            if (a.notas.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              for (final n in a.notas)
-                Text(n,
-                    style: tt.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant, fontStyle: FontStyle.italic)),
-            ],
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _i > 0 ? () => setState(() => _i--) : null,
-                    icon: const Icon(Icons.chevron_left_rounded),
-                    label: Text(_i > 0 ? 'Art. ${ley.articulos[_i - 1].id}' : '—'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _i < ley.articulos.length - 1
-                        ? () => setState(() => _i++)
-                        : null,
-                    iconAlignment: IconAlignment.end,
-                    icon: const Icon(Icons.chevron_right_rounded),
-                    label: Text(_i < ley.articulos.length - 1
-                        ? 'Art. ${ley.articulos[_i + 1].id}'
-                        : '—'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text('Ley Federal del Trabajo · última reforma DOF ${ley.versionLegible}.',
-                textAlign: TextAlign.center,
-                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-            const _SourceNote(),
-          ],
+      bottomNavigationBar: BottomActionBar(children: [
+        OutlinedButton.icon(
+          onPressed: _i > 0 ? () => _go(_i - 1) : null,
+          icon: const Icon(Icons.chevron_left_rounded),
+          label: Text(_i > 0 ? 'Art. ${ley.articulos[_i - 1].id}' : 'Inicio'),
         ),
+        OutlinedButton.icon(
+          onPressed: _i < ley.articulos.length - 1 ? () => _go(_i + 1) : null,
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.chevron_right_rounded),
+          label: Text(_i < ley.articulos.length - 1
+              ? 'Art. ${ley.articulos[_i + 1].id}'
+              : 'Fin'),
+        ),
+      ]),
+      body: ListView(
+        controller: _scroll,
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 28),
+        children: [
+          if (a.titulo.isNotEmpty)
+            Text(a.titulo.replaceAll(' · ', ' — ').toUpperCase(),
+                style: TextStyle(
+                    fontSize: 11.5,
+                    letterSpacing: .8,
+                    fontWeight: FontWeight.w700,
+                    color: t.text3,
+                    height: 1.4)),
+          if (a.capitulo.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(a.capitulo.replaceAll(' · ', ' — '),
+                  style: TextStyle(fontSize: 14, color: t.text2, height: 1.4)),
+            ),
+          const SizedBox(height: 18),
+          Text(a.nombre,
+              style: TextStyle(
+                  fontFamily: kSerif,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
+                  color: t.text)),
+          const SizedBox(height: 10),
+          Container(height: 2, width: 40, color: t.accent),
+          const SizedBox(height: 20),
+          for (final p in a.parrafos)
+            Padding(
+              padding: EdgeInsets.only(
+                  bottom: 14,
+                  left: RegExp(r'^([IVXLC]+\.|[a-zñ]\))\s').hasMatch(p) ? 14 : 0),
+              child: SelectableText.rich(
+                TextSpan(style: body, children: _spans(p, hl)),
+                textAlign: TextAlign.justify,
+              ),
+            ),
+          if (a.notas.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            for (final n in a.notas)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(n,
+                    style: TextStyle(
+                        fontFamily: kSerif,
+                        fontSize: 13,
+                        color: t.text3,
+                        fontStyle: FontStyle.italic)),
+              ),
+          ],
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 12),
+          Text('Última reforma publicada en el DOF el ${ley.versionLegible}.',
+              style: TextStyle(fontSize: 12.5, color: t.text3)),
+          const SizedBox(height: 6),
+          const _SourceNote(),
+        ],
       ),
     );
   }

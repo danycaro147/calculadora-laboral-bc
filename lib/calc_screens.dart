@@ -9,13 +9,13 @@ import 'legal.dart';
 import 'theme.dart';
 
 enum TipoCalculo {
-  aguinaldo('Aguinaldo', 'Cuánto te toca', Icons.card_giftcard_rounded,
-      'Art. 87'),
-  vacaciones('Vacaciones', 'Días y prima', Icons.beach_access_rounded,
-      'Art. 76 y 80'),
-  finiquito('Finiquito', 'Si renuncias', Icons.logout_rounded, 'Art. 79, 87, 162'),
-  liquidacion('Liquidación', 'Si te despiden', Icons.gavel_rounded,
-      'Art. 48, 50, 162');
+  aguinaldo('Aguinaldo', 'Completo o proporcional al año', Icons.redeem_outlined, 'Art. 87'),
+  vacaciones('Vacaciones', 'Días y prima vacacional', Icons.event_available_outlined,
+      'Art. 76'),
+  finiquito('Finiquito', 'Si renuncias o terminas tu contrato', Icons.description_outlined,
+      'Art. 79'),
+  liquidacion('Liquidación', 'Si te despiden sin causa justificada', Icons.gavel_outlined,
+      'Art. 50');
 
   final String titulo, subtitulo, articulos;
   final IconData icono;
@@ -64,20 +64,24 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
         initialDate: initial ?? DateTime(DateTime.now().year - 1, 1, 1),
         firstDate: first ?? DateTime(1960),
         lastDate: DateTime(DateTime.now().year + 1, 12, 31),
-        helpText: 'Elige la fecha',
+        helpText: 'Selecciona la fecha',
       );
 
   void _calcular() {
-    final monto =
-        double.tryParse(_salario.text.replaceAll(',', '').replaceAll(r'$', '').trim());
+    FocusScope.of(context).unfocus();
+    final monto = double.tryParse(
+        _salario.text.replaceAll(',', '').replaceAll(r'$', '').trim());
     setState(() {
-      _errorSalario = (monto == null || monto <= 0) ? 'Escribe tu salario' : null;
+      _errorSalario =
+          (monto == null || monto <= 0) ? 'Captura tu salario bruto' : null;
       final fin = _esSalida || t == TipoCalculo.vacaciones
           ? _fecha
           : (_yaNoTrabaja ? _fecha : DateTime(_anio, 12, 31));
       _errorFecha = _ingreso == null
-          ? 'Elige tu fecha de ingreso'
-          : (_ingreso!.isAfter(fin) ? 'La fecha de ingreso es posterior' : null);
+          ? 'Selecciona tu fecha de ingreso'
+          : (_ingreso!.isAfter(fin)
+              ? 'La fecha de ingreso no puede ser posterior'
+              : null);
     });
     if (_errorSalario != null || _errorFecha != null) return;
     final sd = salarioDiario(monto!, _per);
@@ -107,283 +111,328 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
           incluir20Dias: _veinteDias)),
     };
     Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => ResultScreen(tipo: t, resultado: r, salarioDiario: sd)));
-  }
-
-  String _fmt(DateTime? d) {
-    if (d == null) return 'Elegir fecha';
-    const m = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    return '${d.day} ${m[d.month - 1]} ${d.year}';
+        builder: (_) => ResultScreen(
+            tipo: t,
+            resultado: r,
+            salarioDiario: sd,
+            antiguedad: _ingreso == null
+                ? null
+                : aniosDecimales(_ingreso!,
+                    _esSalida || t == TipoCalculo.vacaciones ? _fecha : DateTime.now()))));
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
+    final tk = Tok.of(context);
     final fechaLabel = switch (t) {
       TipoCalculo.vacaciones => 'Fecha de cálculo',
-      TipoCalculo.aguinaldo => 'Fecha en que dejaste de trabajar',
-      _ => t == TipoCalculo.liquidacion ? 'Fecha del despido' : 'Fecha de salida',
+      TipoCalculo.aguinaldo => 'Último día trabajado',
+      TipoCalculo.liquidacion => 'Fecha del despido',
+      TipoCalculo.finiquito => 'Fecha de salida',
     };
 
     return Scaffold(
       appBar: AppBar(title: Text(t.titulo)),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-          children: [
-            Text(_intro(), style: tt.bodyLarge?.copyWith(color: cs.onSurfaceVariant, height: 1.4)),
-            const SectionTitle('Tu salario'),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _salario,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))
-                      ],
-                      style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                      decoration: InputDecoration(
-                        prefixText: r'$ ',
-                        hintText: '0.00',
-                        labelText: 'Salario ${_per.etiqueta.toLowerCase()} bruto',
-                        errorText: _errorSalario,
-                      ),
-                      onChanged: (_) {
-                        if (_errorSalario != null) setState(() => _errorSalario = null);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Text('¿Cada cuándo te pagan?', style: tt.bodyMedium),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final p in Periodicidad.values)
-                          ChoiceChip(
-                            label: Text(p.etiqueta),
-                            selected: _per == p,
-                            showCheckmark: false,
-                            onSelected: (_) => setState(() => _per = p),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Sin descuentos de impuestos ni IMSS. Si te pagan por '
-                        'semana o quincena, elige esa opción.',
-                        style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-                  ],
-                ),
-              ),
+      bottomNavigationBar: BottomActionBar(children: [
+        FilledButton(onPressed: _calcular, child: const Text('Calcular')),
+      ]),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        children: [
+          Para(_intro()),
+          const SectionTitle('Salario'),
+          _Label('Salario bruto'),
+          TextField(
+            controller: _salario,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+            style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                fontFeatures: [FontFeature.tabularFigures()]),
+            decoration: InputDecoration(
+              prefixText: r'$  ',
+              suffixText: 'MXN',
+              hintText: '0.00',
+              errorText: _errorSalario,
             ),
-            const SectionTitle('Fechas'),
-            Card(
-              child: Column(
-                children: [
-                  _DateTile(
-                    icon: Icons.login_rounded,
-                    label: 'Fecha de ingreso',
-                    value: _fmt(_ingreso),
-                    error: _errorFecha,
-                    onTap: () async {
-                      final d = await _pick(_ingreso);
-                      if (d != null) setState(() { _ingreso = d; _errorFecha = null; });
-                    },
-                  ),
-                  if (t == TipoCalculo.aguinaldo) ...[
-                    const Divider(indent: 56),
-                    ListTile(
-                      leading: const Icon(Icons.event_rounded),
-                      title: const Text('Año del aguinaldo'),
-                      trailing: DropdownButton<int>(
-                        value: _anio,
-                        underline: const SizedBox(),
-                        items: [
-                          for (final y in [DateTime.now().year, DateTime.now().year - 1])
-                            DropdownMenuItem(value: y, child: Text('$y')),
-                        ],
-                        onChanged: (v) => setState(() => _anio = v!),
-                      ),
-                    ),
-                    const Divider(indent: 56),
-                    SwitchListTile(
-                      secondary: const Icon(Icons.work_off_outlined),
-                      title: const Text('Ya no trabajo ahí'),
-                      subtitle: const Text('Se calcula hasta tu último día'),
-                      value: _yaNoTrabaja,
-                      onChanged: (v) => setState(() => _yaNoTrabaja = v),
-                    ),
-                  ],
-                  if (t != TipoCalculo.aguinaldo || _yaNoTrabaja) ...[
-                    const Divider(indent: 56),
-                    _DateTile(
-                      icon: Icons.logout_rounded,
-                      label: fechaLabel,
-                      value: _fmt(_fecha),
-                      onTap: () async {
-                        final d = await _pick(_fecha, first: _ingreso);
-                        if (d != null) setState(() => _fecha = d);
-                      },
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (_esSalida) ...[
-              const SectionTitle('Lo que te deben'),
-              Card(
-                child: Column(
-                  children: [
-                    _Counter(
-                        label: 'Días de sueldo sin pagar',
-                        help: 'Días trabajados que aún no te pagan',
-                        value: _diasPendientes,
-                        onChanged: (v) => setState(() => _diasPendientes = v)),
-                    const Divider(indent: 16),
-                    _Counter(
-                        label: 'Vacaciones de años anteriores',
-                        help: 'Días que no tomaste',
-                        value: _vacPendientes,
-                        onChanged: (v) => setState(() => _vacPendientes = v)),
-                  ],
-                ),
-              ),
-            ],
-            if (t == TipoCalculo.liquidacion) ...[
-              const SizedBox(height: 12),
-              Card(
-                child: SwitchListTile(
-                  title: const Text('Incluir 20 días por año'),
-                  subtitle: const Text(
-                      'Solo procede si el patrón se niega a reinstalarte '
-                      '(art. 49 y 50). Muchos convenios no lo incluyen.'),
-                  value: _veinteDias,
-                  onChanged: (v) => setState(() => _veinteDias = v),
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Card(
-              child: Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  leading: const Icon(Icons.tune_rounded),
-                  title: const Text('Prestaciones de tu empresa',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Si te dan más que el mínimo de ley'),
-                  children: [
-                    if (t != TipoCalculo.vacaciones)
-                      _Counter(
-                          label: 'Días de aguinaldo',
-                          help: 'Mínimo de ley: 15',
-                          value: _diasAguinaldo,
-                          min: 15,
-                          onChanged: (v) => setState(() => _diasAguinaldo = v)),
-                    if (t != TipoCalculo.aguinaldo)
-                      _Counter(
-                          label: 'Prima vacacional (%)',
-                          help: 'Mínimo de ley: 25 %',
-                          value: _prima,
-                          min: 25,
-                          step: 5,
-                          max: 100,
-                          onChanged: (v) => setState(() => _prima = v)),
-                    if (_esSalida)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Zona del salario mínimo', style: tt.bodyLarge),
-                            const SizedBox(height: 8),
-                            SegmentedButton<Zona>(
-                              segments: const [
-                                ButtonSegment(value: Zona.general, label: Text('General')),
-                                ButtonSegment(value: Zona.frontera, label: Text('Frontera norte')),
-                              ],
-                              selected: {_zona},
-                              showSelectedIcon: false,
-                              onSelectionChanged: (s) => setState(() => _zona = s.first),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _calcular,
-              icon: const Icon(Icons.calculate_rounded),
-              label: const Text('Calcular'),
+            onChanged: (_) {
+              if (_errorSalario != null) setState(() => _errorSalario = null);
+            },
+          ),
+          const SizedBox(height: 16),
+          _Label('Periodicidad de pago'),
+          _Segmented<Periodicidad>(
+            values: Periodicidad.values,
+            selected: _per,
+            label: (p) => p.etiqueta,
+            onChanged: (p) => setState(() => _per = p),
+          ),
+          const SizedBox(height: 8),
+          Text('Sin descuentos de ISR ni IMSS.',
+              style: TextStyle(fontSize: 13, color: tk.text3)),
+          const SectionTitle('Fechas'),
+          _Label('Fecha de ingreso'),
+          _DateField(
+            value: _ingreso,
+            error: _errorFecha,
+            onTap: () async {
+              final d = await _pick(_ingreso);
+              if (d != null) {
+                setState(() {
+                  _ingreso = d;
+                  _errorFecha = null;
+                });
+              }
+            },
+          ),
+          if (t == TipoCalculo.aguinaldo) ...[
+            const SizedBox(height: 16),
+            _Label('Año del aguinaldo'),
+            _Segmented<int>(
+              values: [DateTime.now().year - 1, DateTime.now().year],
+              selected: _anio,
+              label: (y) => '$y',
+              onChanged: (y) => setState(() => _anio = y),
             ),
             const SizedBox(height: 12),
-            Text(Legal.avisoCorto,
-                textAlign: TextAlign.center,
-                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            Card(
+              child: SwitchListTile(
+                title: const Text('Ya no trabajo en esa empresa'),
+                subtitle: const Text('Se calcula hasta tu último día'),
+                value: _yaNoTrabaja,
+                onChanged: (v) => setState(() => _yaNoTrabaja = v),
+              ),
+            ),
           ],
-        ),
+          if (t != TipoCalculo.aguinaldo || _yaNoTrabaja) ...[
+            const SizedBox(height: 16),
+            _Label(fechaLabel),
+            _DateField(
+              value: _fecha,
+              onTap: () async {
+                final d = await _pick(_fecha, first: _ingreso);
+                if (d != null) setState(() => _fecha = d);
+              },
+            ),
+          ],
+          if (_esSalida) ...[
+            const SectionTitle('Adeudos'),
+            GroupCard(indent: 16, children: [
+              _Counter(
+                  label: 'Días de sueldo sin pagar',
+                  help: 'Trabajados y aún no pagados',
+                  value: _diasPendientes,
+                  onChanged: (v) => setState(() => _diasPendientes = v)),
+              _Counter(
+                  label: 'Vacaciones no disfrutadas',
+                  help: 'De años anteriores',
+                  value: _vacPendientes,
+                  onChanged: (v) => setState(() => _vacPendientes = v)),
+            ]),
+          ],
+          if (t == TipoCalculo.liquidacion) ...[
+            const SizedBox(height: 12),
+            Card(
+              child: SwitchListTile(
+                title: const Text('Incluir 20 días por año'),
+                subtitle: const Text(
+                    'Procede si el patrón se niega a reinstalarte (art. 49 y 50).'),
+                value: _veinteDias,
+                onChanged: (v) => setState(() => _veinteDias = v),
+              ),
+            ),
+          ],
+          const SectionTitle('Prestaciones'),
+          GroupCard(indent: 16, children: [
+            if (t != TipoCalculo.vacaciones)
+              _Counter(
+                  label: 'Días de aguinaldo',
+                  help: 'Mínimo de ley: 15',
+                  value: _diasAguinaldo,
+                  min: 15,
+                  onChanged: (v) => setState(() => _diasAguinaldo = v)),
+            if (t != TipoCalculo.aguinaldo)
+              _Counter(
+                  label: 'Prima vacacional (%)',
+                  help: 'Mínimo de ley: 25 %',
+                  value: _prima,
+                  min: 25,
+                  step: 5,
+                  max: 100,
+                  onChanged: (v) => setState(() => _prima = v)),
+          ]),
+          if (_esSalida) ...[
+            const SizedBox(height: 16),
+            _Label('Zona del salario mínimo'),
+            _Segmented<Zona>(
+              values: Zona.values,
+              selected: _zona,
+              label: (z) => z == Zona.general ? 'General' : 'Frontera norte',
+              onChanged: (z) => setState(() => _zona = z),
+            ),
+          ],
+          const SizedBox(height: 24),
+          Text(Legal.avisoCorto,
+              textAlign: TextAlign.justify,
+              style: TextStyle(fontSize: 12.5, color: tk.text3, height: 1.45)),
+        ],
       ),
     );
   }
 
   String _intro() => switch (t) {
         TipoCalculo.aguinaldo =>
-          'Por ley te corresponden al menos 15 días de salario, proporcionales al '
-              'tiempo trabajado en el año.',
+          'Por ley te corresponden al menos 15 días de salario, en proporción al '
+              'tiempo trabajado durante el año.',
         TipoCalculo.vacaciones =>
-          'Desde 2023 tienes 12 días de vacaciones desde el primer año, y aumentan '
-              'con tu antigüedad.',
+          'Desde 2023 corresponden 12 días de vacaciones al cumplir el primer año, '
+              'y aumentan conforme a tu antigüedad.',
         TipoCalculo.finiquito =>
-          'Al renunciar te deben pagar lo proporcional de aguinaldo, vacaciones y '
-              'prima vacacional, más lo que te deban.',
+          'Al terminar la relación laboral te corresponden las partes proporcionales '
+              'de aguinaldo, vacaciones y prima vacacional, además de cualquier adeudo.',
         TipoCalculo.liquidacion =>
-          'Si te despiden sin causa justificada te corresponde el finiquito más una '
-              'indemnización y la prima de antigüedad.',
+          'Ante un despido injustificado te corresponde el finiquito más una '
+              'indemnización de tres meses de salario y la prima de antigüedad.',
       };
 }
 
-class _DateTile extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  final String? error;
-  final VoidCallback onTap;
-  const _DateTile(
-      {required this.icon,
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 14, fontWeight: FontWeight.w600, color: Tok.of(context).text)),
+      );
+}
+
+/// Control segmentado de ancho completo.
+class _Segmented<T> extends StatelessWidget {
+  final List<T> values;
+  final T selected;
+  final String Function(T) label;
+  final ValueChanged<T> onChanged;
+  const _Segmented(
+      {required this.values,
+      required this.selected,
       required this.label,
-      required this.value,
-      required this.onTap,
-      this.error});
+      required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(label),
-      subtitle: error != null
-          ? Text(error!, style: TextStyle(color: cs.error))
-          : null,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    final t = Tok.of(context);
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+          color: t.surface2,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: t.border)),
+      child: Row(
         children: [
-          Text(value,
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: value == 'Elegir fecha' ? cs.primary : cs.onSurface)),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
+          for (final v in values)
+            Expanded(
+              child: Semantics(
+                selected: v == selected,
+                button: true,
+                child: GestureDetector(
+                  onTap: () => onChanged(v),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: v == selected ? t.surface : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: v == selected ? Border.all(color: t.border) : null,
+                      boxShadow: v == selected
+                          ? [
+                              BoxShadow(
+                                  color: Colors.black.withAlpha(14),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1))
+                            ]
+                          : null,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(label(v),
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight:
+                                    v == selected ? FontWeight.w700 : FontWeight.w500,
+                                color: v == selected ? t.primary : t.text2)),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
-      onTap: onTap,
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  final DateTime? value;
+  final String? error;
+  final VoidCallback onTap;
+  const _DateField({required this.value, required this.onTap, this.error});
+
+  static const _m = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+    'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Tok.of(context);
+    final err = error != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Material(
+          color: t.surface,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+              side: BorderSide(color: err ? Theme.of(context).colorScheme.error : t.border)),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                        value == null
+                            ? 'dd / mm / aaaa'
+                            : '${value!.day} de ${_m[value!.month - 1]} de ${value!.year}',
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: value == null ? FontWeight.w400 : FontWeight.w600,
+                            color: value == null ? t.text3 : t.text)),
+                  ),
+                  Icon(Icons.calendar_today_outlined, size: 20, color: t.text2),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (err)
+          Padding(
+            padding: const EdgeInsets.only(left: 14, top: 6),
+            child: Text(error!,
+                style: TextStyle(
+                    fontSize: 12.5, color: Theme.of(context).colorScheme.error)),
+          ),
+      ],
     );
   }
 }
@@ -403,39 +452,49 @@ class _Counter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    final cs = Theme.of(context).colorScheme;
+    final t = Tok.of(context);
+    Widget btn(IconData i, VoidCallback? f, String tip) => SizedBox(
+          width: 40,
+          height: 40,
+          child: OutlinedButton(
+            onPressed: f,
+            style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(40, 40),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: Icon(i, size: 18, semanticLabel: tip),
+          ),
+        );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: tt.bodyLarge),
-                Text(help, style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600, color: t.text)),
+                const SizedBox(height: 2),
+                Text(help, style: TextStyle(fontSize: 13, color: t.text3)),
               ],
             ),
           ),
-          IconButton.filledTonal(
-            tooltip: 'Menos',
-            onPressed: value - step >= min ? () => onChanged(value - step) : null,
-            icon: const Icon(Icons.remove_rounded),
-          ),
+          btn(Icons.remove, value - step >= min ? () => onChanged(value - step) : null,
+              'Menos'),
           SizedBox(
-            width: 44,
+            width: 48,
             child: Text('$value',
                 textAlign: TextAlign.center,
-                style: tt.titleMedium?.copyWith(
+                style: TextStyle(
+                    fontSize: 17,
                     fontWeight: FontWeight.w700,
+                    color: t.text,
                     fontFeatures: const [FontFeature.tabularFigures()])),
           ),
-          IconButton.filledTonal(
-            tooltip: 'Más',
-            onPressed: value + step <= max ? () => onChanged(value + step) : null,
-            icon: const Icon(Icons.add_rounded),
-          ),
+          btn(Icons.add, value + step <= max ? () => onChanged(value + step) : null,
+              'Más'),
         ],
       ),
     );
@@ -443,193 +502,269 @@ class _Counter extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Resultado
+// Resultado (formato estado de cuenta)
 // ---------------------------------------------------------------------------
 
 class ResultScreen extends StatelessWidget {
   final TipoCalculo tipo;
   final Resultado resultado;
   final double salarioDiario;
+  final double? antiguedad;
 
   const ResultScreen(
       {super.key,
       required this.tipo,
       required this.resultado,
-      required this.salarioDiario});
+      required this.salarioDiario,
+      this.antiguedad});
 
   String _texto() {
-    final b = StringBuffer('${resultado.titulo} estimado: ${dinero(resultado.total)}\n');
+    final b = StringBuffer('${resultado.titulo} — total estimado: ${dinero(resultado.total)}\n\n');
     for (final c in resultado.conceptos) {
-      if (c.esDias) {
-        b.writeln('• ${c.nombre}: ${c.monto.toStringAsFixed(0)}');
-      } else {
-        b.writeln('• ${c.nombre}: ${dinero(c.monto)}'
-            '${c.articulos.isNotEmpty ? ' (LFT art. ${c.articulos.join(', ')})' : ''}');
-      }
+      b.writeln(c.esDias
+          ? '${c.nombre}: ${c.monto.toStringAsFixed(0)} días'
+          : '${c.nombre}: ${dinero(c.monto)}'
+              '${c.articulos.isNotEmpty ? ' (LFT art. ${c.articulos.join(', ')})' : ''}');
     }
-    b.writeln('\nSalario diario usado: ${dinero(salarioDiario)}');
-    b.writeln('${Legal.avisoCorto}\n');
-    b.write('Calculado con Calculadora Laboral de ${BrainCode.name}.');
+    b.writeln('\nSalario diario: ${dinero(salarioDiario)}');
+    b.writeln('\n${Legal.avisoCorto}');
+    b.write('Calculadora Laboral · ${BrainCode.name}');
     return b.toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final t = Tok.of(context);
     final r = resultado;
-    final esVac = tipo == TipoCalculo.vacaciones;
-    final dias = esVac ? r.conceptos.firstWhere((c) => c.esDias).monto : 0;
+    final money = r.conceptos.where((c) => !c.informativo).toList();
+    final info = r.conceptos.where((c) => c.informativo).toList();
+    const tab = [FontFeature.tabularFigures()];
+
+    Widget concepto(Concepto c, {bool muted = false}) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(c.nombre,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: muted ? t.text2 : t.text)),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(c.esDias ? '${c.monto.toStringAsFixed(0)} días' : dinero(c.monto),
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: muted ? t.text2 : t.text,
+                          fontFeatures: tab)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(c.detalle,
+                  style: TextStyle(fontSize: 13, color: t.text3, height: 1.4)),
+              if (c.articulos.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Wrap(
+                    spacing: 14,
+                    children: [
+                      for (final a in c.articulos)
+                        InkWell(
+                          onTap: () => openArticle(context, a),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.menu_book_outlined, size: 15, color: t.primary),
+                              const SizedBox(width: 5),
+                              Text('LFT art. $a',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: t.primary)),
+                            ]),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Resultado')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.brand, AppColors.brandDeep],
-                ),
-              ),
+      bottomNavigationBar: BottomActionBar(children: [
+        OutlinedButton.icon(
+          onPressed: () => Native.share(_texto()),
+          icon: const Icon(Icons.ios_share_rounded, size: 20),
+          label: const Text('Compartir'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Modificar datos'),
+        ),
+      ]),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        children: [
+          // Resumen
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Icon(tipo.icono, color: Colors.white.withAlpha(220), size: 20),
-                    const SizedBox(width: 8),
-                    Text(r.titulo.toUpperCase(),
-                        style: tt.labelMedium?.copyWith(
-                            color: Colors.white.withAlpha(220),
-                            letterSpacing: .8,
-                            fontWeight: FontWeight.w700)),
-                  ]),
+                  Text('${r.titulo.toUpperCase()} · TOTAL ESTIMADO',
+                      style: TextStyle(
+                          fontSize: 12,
+                          letterSpacing: 1,
+                          fontWeight: FontWeight.w700,
+                          color: t.text3)),
                   const SizedBox(height: 10),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(dinero(r.total),
-                        style: tt.displaySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontFeatures: const [FontFeature.tabularFigures()])),
+                        style: TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -.8,
+                            color: t.primary,
+                            fontFeatures: tab)),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                      esVac
-                          ? '${dias.toStringAsFixed(0)} días de vacaciones + prima vacacional'
-                          : 'Total estimado antes de impuestos',
-                      style: tt.bodyMedium?.copyWith(color: Colors.white.withAlpha(215))),
+                  const SizedBox(height: 12),
+                  Container(height: 2, width: 40, color: t.accent),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      _Fact('Salario diario', dinero(salarioDiario)),
+                      if (antiguedad != null)
+                        _Fact('Antigüedad',
+                            '${antiguedad!.toStringAsFixed(antiguedad! < 10 ? 2 : 1)} años'),
+                    ],
+                  ),
                 ],
               ),
             ),
-            const SectionTitle('Desglose'),
-            Card(
-              child: Column(
-                children: [
-                  for (final (i, c) in r.conceptos.indexed) ...[
-                    if (i > 0) const Divider(indent: 16),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(c.nombre,
-                                    style: tt.titleSmall?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        color: c.informativo ? cs.onSurfaceVariant : null)),
-                              ),
-                              Text(
-                                  c.esDias
-                                      ? '${c.monto.toStringAsFixed(0)} días'
-                                      : dinero(c.monto),
-                                  style: tt.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: c.informativo ? cs.onSurfaceVariant : null,
-                                      fontFeatures: const [FontFeature.tabularFigures()])),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(c.detalle,
-                              style: tt.bodySmall?.copyWith(
-                                  color: cs.onSurfaceVariant, height: 1.35)),
-                          if (c.articulos.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              children: [
-                                for (final a in c.articulos)
-                                  ActionChip(
-                                    avatar: const Icon(Icons.menu_book_rounded, size: 16),
-                                    label: Text('Art. $a'),
-                                    visualDensity: VisualDensity.compact,
-                                    onPressed: () => openArticle(context, a),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (r.notas.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              for (final n in r.notas)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: InfoBox(icon: Icons.info_outline_rounded, text: n),
-                ),
-            ],
-            const SizedBox(height: 4),
-            InfoBox(
-              warning: true,
-              icon: Icons.balance_rounded,
-              text: 'Esto es una estimación informativa, no asesoría legal. Antes de '
-                  'firmar o reclamar, la PROFEDET te asesora gratis: ${Legal.profedetTel}.',
-              action: Wrap(spacing: 4, children: [
-                TextButton(
-                    onPressed: () => Native.openUrl('tel:8009117877'),
-                    child: const Text('Llamar')),
-                TextButton(
-                    onPressed: () => Native.openUrl(Legal.profedetUrl),
-                    child: const Text('gob.mx/profedet')),
-              ]),
-            ),
-            const SizedBox(height: 20),
-            Row(
+          ),
+          const SectionTitle('Desglose'),
+          Card(
+            child: Column(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Native.share(_texto()),
-                    icon: const Icon(Icons.share_rounded),
-                    label: const Text('Compartir'),
+                for (final (i, c) in money.indexed) ...[
+                  if (i > 0) const Divider(indent: 16, endIndent: 16),
+                  concepto(c),
+                ],
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  decoration: BoxDecoration(
+                    color: t.surface2,
+                    border: Border(top: BorderSide(color: t.text.withAlpha(60), width: 1.2)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.edit_rounded),
-                    label: const Text('Ajustar'),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: Text('Total',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w700, color: t.text))),
+                      Text(dinero(r.total),
+                          style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                              color: t.text,
+                              fontFeatures: tab)),
+                    ],
                   ),
                 ),
               ],
             ),
+          ),
+          if (info.isNotEmpty) ...[
+            const SectionTitle('Información adicional'),
+            Card(
+              child: Column(
+                children: [
+                  for (final (i, c) in info.indexed) ...[
+                    if (i > 0) const Divider(indent: 16, endIndent: 16),
+                    concepto(c, muted: true),
+                  ],
+                ],
+              ),
+            ),
           ],
-        ),
+          if (r.notas.isNotEmpty) ...[
+            const SectionTitle('Notas'),
+            for (final n in r.notas)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 10),
+                      child: Container(
+                          width: 5,
+                          height: 5,
+                          decoration:
+                              BoxDecoration(color: t.text3, shape: BoxShape.circle)),
+                    ),
+                    Expanded(child: Para(n, size: 14)),
+                  ],
+                ),
+              ),
+          ],
+          const SizedBox(height: 12),
+          Notice(
+            legal: true,
+            icon: Icons.balance_outlined,
+            title: 'Aviso legal',
+            text: 'Este cálculo es una estimación informativa y no constituye asesoría '
+                'legal. Antes de firmar un finiquito o presentar un reclamo, consulta a '
+                'la PROFEDET, que brinda asesoría gratuita al ${Legal.profedetTel}.',
+            action: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Wrap(spacing: 4, children: [
+                TextButton(
+                    style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        foregroundColor: t.noticeText,
+                        minimumSize: const Size(0, 36)),
+                    onPressed: () => Native.openUrl('tel:8009117877'),
+                    child: const Text('Llamar a PROFEDET')),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Fact extends StatelessWidget {
+  final String label, value;
+  const _Fact(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Tok.of(context);
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(fontSize: 12.5, color: t.text3)),
+          const SizedBox(height: 2),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: t.text,
+                  fontFeatures: const [FontFeature.tabularFigures()])),
+        ],
       ),
     );
   }

@@ -19,6 +19,10 @@ Future<void> loadFonts() async {
     l.addFont(rootBundle.load('assets/fonts/Inter-$w.otf'));
   }
   await l.load();
+  await (FontLoader('Lora')
+        ..addFont(rootBundle.load('assets/fonts/Lora-Regular.ttf'))
+        ..addFont(rootBundle.load('assets/fonts/Lora-SemiBold.ttf')))
+      .load();
   final root = Platform.environment['FLUTTER_ROOT'];
   if (root != null) {
     final f = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
@@ -87,7 +91,7 @@ void main() {
   testWidgets('03 formulario',
       (t) => shoot(t, '03_formulario', const CalcFormScreen(tipo: TipoCalculo.liquidacion)));
   testWidgets('04 resultado', (t) => shoot(t, '04_resultado',
-      ResultScreen(tipo: TipoCalculo.liquidacion, resultado: r, salarioDiario: 600)));
+      ResultScreen(tipo: TipoCalculo.liquidacion, resultado: r, salarioDiario: 600, antiguedad: 7.62)));
   testWidgets('05 ley', (t) => shoot(t, '05_ley', const HomeShell(initialTab: 1)));
   testWidgets('06 articulo', (t) async {
     await t.runAsync(() async => ley = await LeyRepo.cargar());
@@ -96,4 +100,7 @@ void main() {
   testWidgets('07 oscuro',
       (t) => shoot(t, '07_inicio_oscuro', const HomeShell(), mode: ThemeMode.dark));
   testWidgets('08 ajustes', (t) => shoot(t, '08_ajustes', const HomeShell(initialTab: 2)));
+  testWidgets('09 resultado oscuro', (t) => shoot(t, '09_resultado_oscuro',
+      ResultScreen(tipo: TipoCalculo.liquidacion, resultado: r, salarioDiario: 600, antiguedad: 7.62),
+      mode: ThemeMode.dark));
 }
