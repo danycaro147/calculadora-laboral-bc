@@ -65,8 +65,8 @@ void main() {
     // Salario mínimo: sin ISR ni IMSS
     final m = calcularNeto(NetoDatos(monto: 315.04, periodicidad: Periodicidad.diario));
     expect(m.total, closeTo(315.04 * 30.4, .5));
-    // Ingreso bajo: se resta el subsidio para el empleo (620.22 − 535.65)
-    final b = calcularNeto(NetoDatos(monto: 9000, periodicidad: Periodicidad.mensual));
-    expect(b.conceptos[1].monto, closeTo(-84.57, .05));
+    // Ingreso bajo: se resta el subsidio para el empleo (729.02 − 535.65)
+    final b = calcularNeto(NetoDatos(monto: 10000, periodicidad: Periodicidad.mensual));
+    expect(b.conceptos[1].monto, closeTo(-193.37, .05));
   });
 }
