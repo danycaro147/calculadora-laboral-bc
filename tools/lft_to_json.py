@@ -27,7 +27,9 @@ HEADER_RES = [
 
 SUFIJOS = r"(?:Bis|Ter|Qu[aá]ter|Quintus|Quinquies|Sexies|Septies|Octies|Nonies|Decies)"
 ART_RE = re.compile(
-    r"^Art[íi]culo\s+(\d+)\s*([oº°])?\s*\.?\s*((?:[-–]\s*[A-Z](?![a-z]))?)\s*((?:" + SUFIJOS + r"(?:\s*\d+)?\s*)?)\s*\.?\s*[-–—]+\s*(.*)$"
+    r"^Art[íi]culo\s+(\d+)\s*([oº°])?\.?\s*(?:[-–]\s*([A-Z])(?![a-záéíóúñ]))?\s*"
+    r"(" + SUFIJOS + r"(?:\s*\d+)?)?\s*(?:\.\s*[-–—]+|[-–—]+|\.)\s*"
+    r"(?=[A-ZÁÉÍÓÚÑ(¿\"“«]|$)(.*)$"
 )
 TITULO_RE = re.compile(r"^T[ÍI]TULO\s+[A-ZÁÉÍÓÚ]+(?:\s+[A-ZÁÉÍÓÚ]+)?\s*$")
 CAP_RE = re.compile(r"^CAP[ÍI]TULO\s+[IVXLC]+(?:\s+(?:BIS|TER|QU[AÁ]TER))?\s*$", re.I)
@@ -100,11 +102,19 @@ def parse(lines):
             # el nombre suele ir en la(s) siguiente(s) línea(s) no vacías
             name_parts = []
             j = i + 1
-            while j < len(body) and body[j] and not ART_RE.match(body[j]) and not TITULO_RE.match(body[j]) \
-                    and not CAP_RE.match(body[j]) and len(name_parts) < 3 and not NOTE_RE.match(body[j]):
-                name_parts.append(body[j])
+            while j < len(body) and len(name_parts) < 3:
+                b = body[j]
+                if not b and name_parts:
+                    break
+                if ART_RE.match(b) or TITULO_RE.match(b) or CAP_RE.match(b):
+                    break
+                if b and not re.search(r"DOF \d{2}-\d{2}-\d{4}", b):
+                    name_parts.append(b)
                 j += 1
             label = l.title().replace("Titulo", "Título").replace("Capitulo", "Capítulo")
+            for a_, b_ in [("Septimo", "Séptimo"), ("Decimo", "Décimo"), ("Dieciseis", "Dieciséis"),
+                           ("Quater", "Quáter")]:
+                label = label.replace(a_, b_)
             label = re.sub(r"\b(Ii|Iii|Iv|Vi|Vii|Viii|Ix|Xi|Xii|Xiii|Xiv|Xv|Xvi|Xvii|Xviii|Xix|Xx|Xxi|Xxii|Xxiii|Bis)\b",
                            lambda m: m.group(1).upper(), label)
             full = (label + (" · " + " ".join(name_parts) if name_parts else "")).strip()
@@ -120,10 +130,10 @@ def parse(lines):
         if m:
             close_article()
             num, ordi, letra, suf, rest = m.groups()
-            letra = re.sub(r"\s", "", letra or "")
+            letra = (letra or "").strip()
             suf = re.sub(r"\s+", " ", (suf or "").strip())
-            ident = num + ("o" if ordi else "") + (letra if letra else "") + (" " + suf if suf else "")
-            key = num + (letra.replace("–", "-") if letra else "") + (" " + suf.lower().replace("á", "a") if suf else "")
+            ident = num + ("o" if ordi else "") + ("-" + letra if letra else "") + (" " + suf if suf else "")
+            key = num + ("-" + letra if letra else "") + (" " + suf.lower().replace("á", "a") if suf else "")
             cur = {"id": ident, "k": key, "n": int(num), "t": titulo, "c": capitulo, "p": [], "notas": []}
             articles.append(cur)
             buf = [rest] if rest else []
@@ -172,6 +182,11 @@ def main():
         problems.append("faltan artículos " + ", ".join(missing))
     if not version:
         problems.append("no se encontró la fecha de última reforma")
+    from collections import Counter
+    dups = [k for k, c in Counter(x["k"] for x in arts).items() if c > 1]
+    if len(dups) > 5:
+        problems.append("claves repetidas: " + ", ".join(dups[:10]))
+    print("Repetidos:", dups[:20])
     empty = [x["id"] for x in arts if not x["p"]]
     print(f"Versión DOF {version} · {len(arts)} artículos · {len(empty)} vacíos")
     a87 = next((x for x in arts if x["k"] == "87"), None)

@@ -9,9 +9,9 @@ import 'legal.dart';
 import 'theme.dart';
 
 enum TipoCalculo {
-  aguinaldo('Aguinaldo', 'Cuánto te toca este año', Icons.card_giftcard_rounded,
+  aguinaldo('Aguinaldo', 'Cuánto te toca', Icons.card_giftcard_rounded,
       'Art. 87'),
-  vacaciones('Vacaciones', 'Días y prima vacacional', Icons.beach_access_rounded,
+  vacaciones('Vacaciones', 'Días y prima', Icons.beach_access_rounded,
       'Art. 76 y 80'),
   finiquito('Finiquito', 'Si renuncias', Icons.logout_rounded, 'Art. 79, 87, 162'),
   liquidacion('Liquidación', 'Si te despiden', Icons.gavel_rounded,
@@ -160,20 +160,20 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
                       },
                     ),
                     const SizedBox(height: 12),
-                    SegmentedButton<Periodicidad>(
-                      segments: [
+                    Text('¿Cada cuándo te pagan?', style: tt.bodyMedium),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
                         for (final p in Periodicidad.values)
-                          ButtonSegment(value: p, label: Text(p.etiqueta)),
+                          ChoiceChip(
+                            label: Text(p.etiqueta),
+                            selected: _per == p,
+                            showCheckmark: false,
+                            onSelected: (_) => setState(() => _per = p),
+                          ),
                       ],
-                      selected: {_per},
-                      showSelectedIcon: false,
-                      style: const ButtonStyle(
-                          visualDensity: VisualDensity.compact,
-                          textStyle: WidgetStatePropertyAll(TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600))),
-                      onSelectionChanged: (s) => setState(() => _per = s.first),
                     ),
                     const SizedBox(height: 8),
                     Text('Sin descuentos de impuestos ni IMSS. Si te pagan por '
