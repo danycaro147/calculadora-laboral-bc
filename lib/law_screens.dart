@@ -114,34 +114,26 @@ class _LawTabState extends State<LawTab> {
             if (_query.trim().isEmpty) ...[
               const SectionTitle('Temas frecuentes'),
               GroupCard(indent: 16, children: [
-                for (var i = 0; i < temasFrecuentes.length; i += 2)
-                  Row(
-                    children: [
-                      for (final tm in temasFrecuentes.skip(i).take(2))
-                        Expanded(
-                          child: InkWell(
-                            onTap: () => openArticle(context, tm.$2),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(tm.$1,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            fontSize: 14.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: t.text)),
-                                  ),
-                                  Text('Art. ${tm.$2}',
-                                      style: TextStyle(fontSize: 12.5, color: t.text3)),
-                                ],
-                              ),
-                            ),
+                for (final tm in temasFrecuentes)
+                  InkWell(
+                    onTap: () => openArticle(context, tm.$2),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(tm.$1,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.text)),
                           ),
-                        ),
-                    ],
+                          Text('Art. ${tm.$2}',
+                              style: TextStyle(fontSize: 13, color: t.text3)),
+                          Icon(Icons.chevron_right_rounded, color: t.text3),
+                        ],
+                      ),
+                    ),
                   ),
               ]),
               const SectionTitle('Índice'),
@@ -467,7 +459,9 @@ class _ArticleScreenState extends State<ArticleScreen> {
                   fontWeight: FontWeight.w600,
                   color: t.text)),
           const SizedBox(height: 10),
-          Container(height: 2, width: 40, color: t.accent),
+          Align(
+              alignment: Alignment.centerLeft,
+              child: Container(height: 2, width: 40, color: t.accent)),
           const SizedBox(height: 20),
           for (final p in a.parrafos)
             Padding(
