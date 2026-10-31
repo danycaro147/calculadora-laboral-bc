@@ -23,7 +23,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final t = Tok.of(context);
-    const titles = ['Calculadora Laboral', 'Ley Federal del Trabajo', 'Ajustes'];
+    const titles = ['Finiquito MX', 'Ley Federal del Trabajo', 'Ajustes'];
     return Scaffold(
       appBar: AppBar(title: Text(titles[_tab])),
       body: IndexedStack(

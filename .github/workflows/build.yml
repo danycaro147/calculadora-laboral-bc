@@ -67,8 +67,8 @@ jobs:
             tail -30 build.log >> err.txt
             msg=$(sed -e 's/%/%25/g' err.txt | sed -e ':a;N;$!ba;s/\n/%0A/g')
             echo "::error title=BUILDLOG::$msg"; exit 1; }
-          cp build/app/outputs/flutter-apk/app-release.apk CalculadoraLaboral.apk
-          cp build/app/outputs/bundle/release/app-release.aab CalculadoraLaboral.aab
+          cp build/app/outputs/flutter-apk/app-release.apk FiniquitoMX.apk
+          cp build/app/outputs/bundle/release/app-release.aab FiniquitoMX.aab
 
       - name: Guardar ley y capturas en el repositorio
         run: |
@@ -80,7 +80,7 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
-          name: Calculadora Laboral (compilación ${{ github.run_number }})
+          name: Finiquito MX (compilación ${{ github.run_number }})
           files: |
-            CalculadoraLaboral.apk
-            CalculadoraLaboral.aab
+            FiniquitoMX.apk
+            FiniquitoMX.aab

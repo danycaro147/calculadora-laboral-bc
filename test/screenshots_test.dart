@@ -100,6 +100,12 @@ void main() {
   testWidgets('07 oscuro',
       (t) => shoot(t, '07_inicio_oscuro', const HomeShell(), mode: ThemeMode.dark));
   testWidgets('08 ajustes', (t) => shoot(t, '08_ajustes', const HomeShell(initialTab: 2)));
+  testWidgets('10 neto', (t) => shoot(t, '10_neto',
+      ResultScreen(tipo: TipoCalculo.neto,
+          resultado: calcularNeto(NetoDatos(monto: 15000, periodicidad: Periodicidad.quincenal)),
+          salarioDiario: 1000)));
+  testWidgets('11 formulario neto',
+      (t) => shoot(t, '11_formulario_neto', const CalcFormScreen(tipo: TipoCalculo.neto)));
   testWidgets('09 resultado oscuro', (t) => shoot(t, '09_resultado_oscuro',
       ResultScreen(tipo: TipoCalculo.liquidacion, resultado: r, salarioDiario: 600, antiguedad: 7.62),
       mode: ThemeMode.dark));

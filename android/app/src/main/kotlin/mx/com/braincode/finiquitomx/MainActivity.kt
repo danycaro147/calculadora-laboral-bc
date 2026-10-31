@@ -1,4 +1,4 @@
-package mx.com.braincode.calculadoralaboral
+package mx.com.braincode.finiquitomx
 
 import android.content.Context
 import android.content.Intent

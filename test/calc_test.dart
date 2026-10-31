@@ -57,4 +57,16 @@ void main() {
     // 12 días × 10 años × tope (2 × 315.04)
     expect(prima.monto, closeTo(12 * 10 * 2 * 315.04, 1));
   });
+
+  test('ISR tarifa 2026 y sueldo neto', () {
+    expect(isrMensual(15000), closeTo(1339.14 + (15000 - 14644.65) * .1792, .01));
+    final r = calcularNeto(NetoDatos(monto: 15000, periodicidad: Periodicidad.mensual));
+    expect(r.total, closeTo(13197, 15));
+    // Salario mínimo: sin ISR ni IMSS
+    final m = calcularNeto(NetoDatos(monto: 315.04, periodicidad: Periodicidad.diario));
+    expect(m.total, closeTo(315.04 * 30.4, .5));
+    // Ingreso bajo: se resta el subsidio para el empleo (620.22 − 535.65)
+    final b = calcularNeto(NetoDatos(monto: 9000, periodicidad: Periodicidad.mensual));
+    expect(b.conceptos[1].monto, closeTo(-84.57, .05));
+  });
 }

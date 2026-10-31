@@ -14,7 +14,7 @@ if (hasReleaseKey) {
 }
 
 android {
-    namespace = "mx.com.braincode.calculadoralaboral"
+    namespace = "mx.com.braincode.finiquitomx"
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
@@ -27,7 +27,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "mx.com.braincode.calculadoralaboral"
+        applicationId = "mx.com.braincode.finiquitomx"
         // Android 7+
         minSdk = 24
         targetSdk = flutter.targetSdkVersion

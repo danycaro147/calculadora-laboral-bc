@@ -1,9 +1,9 @@
-# Calculadora Laboral (Flutter · Android)
+# Finiquito MX (Flutter · Android)
 
 Una app de **BrainCode México Tech** — https://braincode.com.mx
 © 2026 BrainCode México Tech. Todos los derechos reservados (ver `LICENSE`).
 
-Calcula aguinaldo, vacaciones, finiquito y liquidación conforme a la Ley Federal del
+Calcula sueldo neto, aguinaldo, vacaciones, finiquito y liquidación conforme a la Ley Federal del
 Trabajo, e incluye el texto completo de la ley con buscador, sin internet.
 
 ## Cómo se mantiene al día

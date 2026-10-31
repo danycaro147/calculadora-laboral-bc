@@ -16,7 +16,7 @@ class Legal {
   static const terminos = [
     (
       'Naturaleza de la app',
-      'Calculadora Laboral es una herramienta informativa desarrollada por '
+      'Finiquito MX es una herramienta informativa desarrollada por '
           'BrainCode México Tech. Sus resultados son estimaciones basadas en los '
           'datos que tú capturas y en reglas generales de la Ley Federal del Trabajo. '
           'No constituyen asesoría legal, contable ni fiscal, ni crean una relación '

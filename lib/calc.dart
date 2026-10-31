@@ -93,8 +93,10 @@ class Resultado {
   final String titulo;
   final List<Concepto> conceptos;
   final List<String> notas;
+  final String etiquetaTotal;
 
-  Resultado(this.titulo, this.conceptos, [this.notas = const []]);
+  Resultado(this.titulo, this.conceptos,
+      [this.notas = const [], this.etiquetaTotal = 'Total']);
 
   double get total =>
       _r(conceptos.where((c) => !c.informativo).fold(0.0, (a, c) => a + c.monto));
@@ -343,4 +345,129 @@ Resultado calcularSalida(SalidaDatos d) {
 
   notas.add('Antigüedad: ${_d(_r(anios))} años.');
   return Resultado(d.despido ? 'Liquidación' : 'Finiquito', conceptos, notas);
+}
+
+
+// ---------------------------------------------------------------------------
+// Sueldo neto (ISR art. 96 LISR, subsidio para el empleo y cuotas IMSS)
+// ---------------------------------------------------------------------------
+
+/// Tarifa mensual ISR 2026 (Anexo 8 RMF 2026, DOF 28-12-2025):
+/// (límite inferior, cuota fija, % sobre excedente)
+const tarifaIsrMensual2026 = <(double, double, double)>[
+  (0.01, 0.00, 1.92),
+  (844.60, 16.22, 6.40),
+  (7168.52, 420.95, 10.88),
+  (12598.03, 1011.68, 16.00),
+  (14644.65, 1339.14, 17.92),
+  (17533.65, 1856.84, 21.36),
+  (35362.84, 5665.16, 23.52),
+  (55736.69, 10457.09, 30.00),
+  (106410.51, 25659.23, 32.00),
+  (141880.67, 37009.69, 34.00),
+  (425642.00, 133488.54, 35.00),
+];
+
+/// Subsidio para el empleo 2026: 15.02 % de la UMA mensual, para ingresos
+/// mensuales de hasta $11,492.66 (decreto de actualización para 2026).
+const subsidioPorcentaje2026 = 15.02;
+const subsidioTopeIngreso2026 = 11492.66;
+
+double isrMensual(double base) {
+  if (base <= 0) return 0;
+  var fila = tarifaIsrMensual2026.first;
+  for (final f in tarifaIsrMensual2026) {
+    if (base >= f.$1) fila = f;
+  }
+  return fila.$2 + (base - fila.$1) * fila.$3 / 100;
+}
+
+double subsidioMensual(double base) => base <= subsidioTopeIngreso2026
+    ? ValoresOficiales.umaDiaria * 30.4 * subsidioPorcentaje2026 / 100
+    : 0;
+
+/// Cuotas IMSS a cargo del trabajador, diarias, sobre el salario base de
+/// cotización (SBC). Ley del Seguro Social art. 25, 106, 107, 147 y 168.
+double imssObreroDiario(double sbc) {
+  final uma = ValoresOficiales.umaDiaria;
+  final base = sbc > 25 * uma ? 25 * uma : sbc;
+  final excedente = base > 3 * uma ? (base - 3 * uma) * 0.0040 : 0.0;
+  return excedente +
+      base * (0.0025 + 0.00375 + 0.00625 + 0.01125); // dinero, pensionados, IV, CEAV
+}
+
+class NetoDatos {
+  final double monto;
+  final Periodicidad periodicidad;
+  final int anios; // antigüedad para el salario integrado
+  final int diasAguinaldo;
+  final double primaPorcentaje;
+  final Zona zona;
+
+  NetoDatos({
+    required this.monto,
+    required this.periodicidad,
+    this.anios = 1,
+    this.diasAguinaldo = 15,
+    this.primaPorcentaje = 25,
+    this.zona = Zona.general,
+  });
+}
+
+Resultado calcularNeto(NetoDatos d) {
+  final sd = salarioDiario(d.monto, d.periodicidad);
+  // Ingreso mensual: si te pagan por mes se usa tal cual; si no, salario diario × 30.4
+  final mensual =
+      d.periodicidad == Periodicidad.mensual ? d.monto : sd * 30.4;
+  final esMinimo = sd <= salarioMinimo(d.zona) + 0.005;
+
+  final isr = esMinimo ? 0.0 : isrMensual(mensual);
+  final sub = esMinimo ? 0.0 : subsidioMensual(mensual);
+  final isrRetenido = isr - sub > 0 ? isr - sub : 0.0;
+
+  final sbc = salarioIntegrado(sd, d.diasAguinaldo,
+      diasVacaciones(d.anios < 1 ? 1 : d.anios), d.primaPorcentaje);
+  final imss = esMinimo ? 0.0 : imssObreroDiario(sbc) * 30.4;
+  final neto = mensual - isrRetenido - imss;
+
+  final per = d.periodicidad;
+  final factor = switch (per) {
+    Periodicidad.mensual => 1.0,
+    Periodicidad.quincenal => 15.2 / 30.4,
+    Periodicidad.semanal => 7 / 30.4,
+    Periodicidad.diario => 1 / 30.4,
+  };
+
+  return Resultado('Sueldo neto mensual', [
+    Concepto('Sueldo bruto', _r(mensual),
+        per == Periodicidad.mensual
+            ? 'Salario mensual capturado'
+            : '${_f(sd)} diarios × 30.4 días', const []),
+    Concepto(
+        'ISR retenido',
+        -_r(isrRetenido),
+        esMinimo
+            ? 'Salario mínimo: no se retiene ISR (art. 96 LISR).'
+            : 'Tarifa art. 96 LISR 2026: ${_f(_r(isr))}'
+                '${sub > 0 ? ' − subsidio para el empleo ${_f(_r(sub))}' : ''}',
+        const []),
+    Concepto(
+        'Cuotas IMSS',
+        -_r(imss),
+        esMinimo
+            ? 'Salario mínimo: las cubre el patrón (art. 36 LSS).'
+            : 'Sobre salario base de cotización de ${_f(_r(sbc))} diarios',
+        const []),
+    if (per != Periodicidad.mensual)
+      Concepto('Neto ${per.etiqueta.toLowerCase()}', _r(neto * factor),
+          'Lo que recibirías cada pago (aproximado)', const [],
+          informativo: true),
+    Concepto('Neto anual', _r(neto * 12), 'Sin aguinaldo ni prima vacacional',
+        const [], informativo: true),
+  ], [
+    'Estimación con la tarifa mensual del ISR. Tu recibo puede variar por '
+        'días del periodo, faltas, horas extra, vales, Infonavit, pensión '
+        'alimenticia o créditos Fonacot.',
+    'No incluye aguinaldo, prima vacacional ni el ajuste anual del ISR.',
+  ], 'Neto a recibir');
 }

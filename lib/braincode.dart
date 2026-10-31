@@ -11,11 +11,11 @@ class BrainCode {
   static const email = 'contacto@braincode.com.mx';
 
   static String site(String campaign) =>
-      'https://braincode.com.mx/?utm_source=calculadora_laboral'
+      'https://braincode.com.mx/?utm_source=finiquito_mx'
       '&utm_medium=app&utm_campaign=$campaign';
 
   static const mail = 'mailto:contacto@braincode.com.mx'
-      '?subject=Contacto%20desde%20Calculadora%20Laboral';
+      '?subject=Contacto%20desde%20Finiquito%20MX';
 
   static const services = [
     (Icons.smartphone_outlined, 'Apps móviles',
@@ -209,7 +209,7 @@ class AboutPage extends StatelessWidget {
           ),
           const SizedBox(height: 22),
           const Para(
-            'Desarrollamos Calculadora Laboral para que cualquier persona conozca lo '
+            'Desarrollamos Finiquito MX para que cualquier persona conozca lo '
             'que le corresponde conforme a la ley. Es gratuita, no contiene publicidad '
             'de terceros y no recopila datos personales. Si tu empresa necesita '
             'tecnología, con gusto te ayudamos.',
@@ -244,7 +244,7 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
               '© 2026 ${BrainCode.name}. Todos los derechos reservados.'
-              '${version.isNotEmpty ? '\nCalculadora Laboral · Versión $version' : ''}',
+              '${version.isNotEmpty ? '\nFiniquito MX · Versión $version' : ''}',
               style: TextStyle(fontSize: 12.5, color: t.text3, height: 1.5)),
         ],
       ),

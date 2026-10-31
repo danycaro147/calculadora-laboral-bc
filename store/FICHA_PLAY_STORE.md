@@ -1,17 +1,18 @@
-# Ficha para Google Play — Calculadora Laboral
+# Ficha para Google Play — Finiquito MX
 
-**Nombre (máx. 30):** Calculadora Laboral: Finiquito
-**Paquete:** mx.com.braincode.calculadoralaboral
+**Nombre (máx. 30):** Finiquito MX: Sueldo y Ley
+**Paquete:** mx.com.braincode.finiquitomx
 **Categoría:** Finanzas (alternativa: Productividad)
 **Correo:** contacto@braincode.com.mx · **Sitio:** https://braincode.com.mx
 **Política de privacidad:** https://github.com/danycaro147/calculadora-laboral-bc/blob/main/PRIVACIDAD.md
 
 ## Descripción breve (máx. 80)
-Calcula aguinaldo, vacaciones, finiquito y liquidación según la ley mexicana.
+Sueldo neto, aguinaldo, finiquito y liquidación según la ley mexicana.
 
 ## Descripción completa
 Conoce lo que te corresponde por ley en segundos.
 
+✔ Sueldo neto: cuánto recibes después de ISR (tarifa 2026), subsidio para el empleo e IMSS
 ✔ Aguinaldo completo o proporcional (art. 87), con la parte exenta de ISR
 ✔ Vacaciones y prima vacacional con la escala vigente desde 2023 (art. 76 y 80)
 ✔ Finiquito por renuncia: aguinaldo, vacaciones y prima proporcionales

@@ -9,6 +9,8 @@ import 'legal.dart';
 import 'theme.dart';
 
 enum TipoCalculo {
+  neto('Sueldo neto', 'Lo que recibes después de ISR e IMSS', Icons.payments_outlined,
+      'ISR 2026'),
   aguinaldo('Aguinaldo', 'Completo o proporcional al año', Icons.redeem_outlined, 'Art. 87'),
   vacaciones('Vacaciones', 'Días y prima vacacional', Icons.event_available_outlined,
       'Art. 76'),
@@ -45,6 +47,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
   int _prima = 25;
   int _diasPendientes = 0;
   int _vacPendientes = 0;
+  int _anios = 1;
   Zona _zona = Zona.general;
   bool _veinteDias = false;
   String? _errorSalario, _errorFecha;
@@ -77,7 +80,9 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
       final fin = _esSalida || t == TipoCalculo.vacaciones
           ? _fecha
           : (_yaNoTrabaja ? _fecha : DateTime(_anio, 12, 31));
-      _errorFecha = _ingreso == null
+      _errorFecha = t == TipoCalculo.neto
+          ? null
+          : _ingreso == null
           ? 'Selecciona tu fecha de ingreso'
           : (_ingreso!.isAfter(fin)
               ? 'La fecha de ingreso no puede ser posterior'
@@ -87,6 +92,13 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
     final sd = salarioDiario(monto!, _per);
 
     final Resultado r = switch (t) {
+      TipoCalculo.neto => calcularNeto(NetoDatos(
+          monto: monto!,
+          periodicidad: _per,
+          anios: _anios,
+          diasAguinaldo: _diasAguinaldo,
+          primaPorcentaje: _prima.toDouble(),
+          zona: _zona)),
       TipoCalculo.aguinaldo => calcularAguinaldo(AguinaldoDatos(
           salarioDiario: sd,
           ingreso: _ingreso!,
@@ -115,7 +127,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
             tipo: t,
             resultado: r,
             salarioDiario: sd,
-            antiguedad: _ingreso == null
+            antiguedad: _ingreso == null || t == TipoCalculo.neto
                 ? null
                 : aniosDecimales(_ingreso!,
                     _esSalida || t == TipoCalculo.vacaciones ? _fecha : DateTime.now()))));
@@ -125,6 +137,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
   Widget build(BuildContext context) {
     final tk = Tok.of(context);
     final fechaLabel = switch (t) {
+      TipoCalculo.neto => '',
       TipoCalculo.vacaciones => 'Fecha de cálculo',
       TipoCalculo.aguinaldo => 'Último día trabajado',
       TipoCalculo.liquidacion => 'Fecha del despido',
@@ -171,6 +184,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
           const SizedBox(height: 8),
           Text('Sin descuentos de ISR ni IMSS.',
               style: TextStyle(fontSize: 13, color: tk.text3)),
+          if (t != TipoCalculo.neto) ...[
           const SectionTitle('Fechas'),
           _Label('Fecha de ingreso'),
           _DateField(
@@ -205,7 +219,8 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
               ),
             ),
           ],
-          if (t != TipoCalculo.aguinaldo || _yaNoTrabaja) ...[
+          ],
+          if (t != TipoCalculo.neto && (t != TipoCalculo.aguinaldo || _yaNoTrabaja)) ...[
             const SizedBox(height: 16),
             _Label(fechaLabel),
             _DateField(
@@ -245,6 +260,14 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
           ],
           const SectionTitle('Prestaciones'),
           GroupCard(indent: 16, children: [
+            if (t == TipoCalculo.neto)
+              _Counter(
+                  label: 'Años de antigüedad',
+                  help: 'Para estimar tu salario de cotización',
+                  value: _anios,
+                  min: 1,
+                  max: 50,
+                  onChanged: (v) => setState(() => _anios = v)),
             if (t != TipoCalculo.vacaciones)
               _Counter(
                   label: 'Días de aguinaldo',
@@ -262,7 +285,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
                   max: 100,
                   onChanged: (v) => setState(() => _prima = v)),
           ]),
-          if (_esSalida) ...[
+          if (_esSalida || t == TipoCalculo.neto) ...[
             const SizedBox(height: 16),
             _Label('Zona del salario mínimo'),
             _Segmented<Zona>(
@@ -282,6 +305,9 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
   }
 
   String _intro() => switch (t) {
+        TipoCalculo.neto =>
+          'Calcula cuánto recibes realmente después de la retención de ISR, el '
+              'subsidio para el empleo y las cuotas del IMSS, con las tarifas 2026.',
         TipoCalculo.aguinaldo =>
           'Por ley te corresponden al menos 15 días de salario, en proporción al '
               'tiempo trabajado durante el año.',
@@ -528,7 +554,7 @@ class ResultScreen extends StatelessWidget {
     }
     b.writeln('\nSalario diario: ${dinero(salarioDiario)}');
     b.writeln('\n${Legal.avisoCorto}');
-    b.write('Calculadora Laboral · ${BrainCode.name}');
+    b.write('Finiquito MX · ${BrainCode.name}');
     return b.toString();
   }
 
@@ -619,7 +645,10 @@ class ResultScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${r.titulo.toUpperCase()} · TOTAL ESTIMADO',
+                  Text(
+                      tipo == TipoCalculo.neto
+                          ? 'NETO MENSUAL ESTIMADO'
+                          : '${r.titulo.toUpperCase()} · TOTAL ESTIMADO',
                       style: TextStyle(
                           fontSize: 12,
                           letterSpacing: 1,
@@ -669,7 +698,7 @@ class ResultScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(
-                          child: Text('Total',
+                          child: Text(r.etiquetaTotal,
                               style: TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w700, color: t.text))),
                       Text(dinero(r.total),
