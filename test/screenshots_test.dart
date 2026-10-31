@@ -10,7 +10,6 @@ import 'package:calculadora_laboral/law_screens.dart';
 import 'package:calculadora_laboral/main.dart';
 import 'package:calculadora_laboral/welcome.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

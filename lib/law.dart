@@ -113,7 +113,9 @@ class LeyRepo {
 
   static Future<Ley> cargar() => _f ??= () async {
         final raw = await rootBundle.loadString('assets/lft/lft.json');
-        return actual = await compute(_parse, raw);
+        final ley = await compute(_parse, raw);
+        actual = ley;
+        return ley;
       }();
 }
 
