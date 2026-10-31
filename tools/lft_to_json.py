@@ -27,7 +27,7 @@ HEADER_RES = [
 
 SUFIJOS = r"(?:Bis|Ter|Qu[aá]ter|Quintus|Quinquies|Sexies|Septies|Octies|Nonies|Decies)"
 ART_RE = re.compile(
-    r"^Art[íi]culo\s+(\d+)\s*([oº°])?\.?\s*(?:[-–]\s*([A-Z])(?![a-záéíóúñ]))?\s*"
+    r"^Art[íi]culo\s+(\d+)\s*([oº°])?\.?\s*(?:[-–]\s*([A-ZÑ])(?![a-záéíóúñ]))?\s*"
     r"(" + SUFIJOS + r"(?:\s*\d+)?)?\s*(?:\.\s*[-–—]+|[-–—]+|\.)\s*"
     r"(?=[A-ZÁÉÍÓÚÑ(¿\"“«]|$)(.*)$"
 )
@@ -43,6 +43,32 @@ NOTE_RE = re.compile(
 def norm(s: str) -> str:
     s = unicodedata.normalize("NFD", s.lower())
     return "".join(c for c in s if unicodedata.category(c) != "Mn")
+
+
+FRAC_RE = re.compile(r"^(?:[IVXLC]+|[A-ZÑ]|[a-z]|\d+)[.)](?:-)?$")
+
+
+def merge_fracciones(paras):
+    """En el PDF el número de fracción ("I.", "a)") queda separado de su texto."""
+    tokens = []
+    for p in paras:
+        # Solo la primera fracción ("I." o "a)") puede quedar pegada al final.
+        m = re.match(r"^(.*\S)\s+(I\.|a\))$", p)
+        if m and not re.search(r"(fracci[oó]n(es)?|incisos?|apartado|art[íi]culo|y|o|,)$", m.group(1), re.I):
+            tokens += [m.group(1), m.group(2)]
+        else:
+            tokens.append(p)
+    out = []
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        if FRAC_RE.match(t) and i + 1 < len(tokens) and not FRAC_RE.match(tokens[i + 1]):
+            out.append(t + " " + tokens[i + 1])
+            i += 2
+        else:
+            out.append(t)
+            i += 1
+    return out
 
 
 def download(dest: str) -> None:
@@ -92,6 +118,8 @@ def parse(lines):
 
     def close_article():
         flush_para()
+        if cur is not None:
+            cur["p"] = merge_fracciones(cur["p"])
 
     i = 0
     while i < len(body):
