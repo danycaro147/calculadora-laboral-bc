@@ -93,7 +93,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
 
     final Resultado r = switch (t) {
       TipoCalculo.neto => calcularNeto(NetoDatos(
-          monto: monto!,
+          monto: monto,
           periodicidad: _per,
           anios: _anios,
           diasAguinaldo: _diasAguinaldo,
