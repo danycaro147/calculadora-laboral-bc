@@ -95,9 +95,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     color: t.text)),
             const SizedBox(height: 12),
             const Para(
-                'Aguinaldo, vacaciones, finiquito y liquidación conforme a la Ley '
-                'Federal del Trabajo, con el texto completo de la ley disponible sin '
-                'conexión.',
+                'Sueldo neto, aguinaldo, vacaciones, finiquito y liquidación conforme '
+                'a la Ley Federal del Trabajo, con el texto completo de la ley '
+                'disponible sin conexión.',
                 size: 16),
             const SizedBox(height: 28),
             feature(Icons.fact_check_outlined, 'Cálculos fundamentados',
