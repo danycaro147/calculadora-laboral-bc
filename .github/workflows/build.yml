@@ -1,0 +1,86 @@
+name: Compilar app
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 9 1 * *'   # cada mes revisa si la LFT cambió
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Actualizar texto de la Ley Federal del Trabajo
+        run: |
+          sudo apt-get install -y -qq poppler-utils >/dev/null
+          set -o pipefail
+          if python3 tools/lft_to_json.py 2>&1 | tee lft.log; then
+            msg=$(sed -e 's/%/%25/g' lft.log | sed -e ':a;N;$!ba;s/\n/%0A/g')
+            echo "::notice title=LFT::$msg"
+          else
+            msg=$(tail -30 lft.log | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')
+            echo "::warning title=LFT::$msg"
+            [ -f assets/lft/lft.json ] || { echo "::error title=BUILDLOG::No hay texto de la ley"; exit 1; }
+          fi
+
+      - run: flutter pub get
+
+      - name: Analizar y probar
+        run: |
+          set -o pipefail
+          export FLUTTER_ROOT="$(dirname "$(dirname "$(which flutter)")")"
+          ( flutter analyze --no-fatal-infos && flutter test test/calc_test.dart \
+            && flutter test --update-goldens test/screenshots_test.dart ) 2>&1 | tee test.log || {
+            msg=$(grep -vE "^\s*$" test.log | grep -E -B2 -A6 "error •|warning •|EXCEPTION|Error:|FAILED|Expected|Actual" | head -80 | sed -e 's/%/%25/g' | sed -e ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=BUILDLOG::$msg"; exit 1; }
+
+      - name: Llave de firma (si existe en secretos)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/upload-keystore.jks
+            printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n" \
+              "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
+          fi
+
+      - name: Compilar APK y AAB
+        run: |
+          set -o pipefail
+          ( flutter build apk --release && flutter build appbundle --release ) 2>&1 | tee build.log || {
+            grep -E "error|Error|ERROR|What went wrong|FAILURE|Exception|e: " build.log | head -60 > err.txt
+            tail -30 build.log >> err.txt
+            msg=$(sed -e 's/%/%25/g' err.txt | sed -e ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=BUILDLOG::$msg"; exit 1; }
+          cp build/app/outputs/flutter-apk/app-release.apk CalculadoraLaboral.apk
+          cp build/app/outputs/bundle/release/app-release.aab CalculadoraLaboral.aab
+
+      - name: Guardar ley y capturas en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/lft/lft.json store/screenshots/*.png
+          git diff --cached --quiet || { git commit -m "Ley y capturas actualizadas [skip ci]" && git push; }
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Calculadora Laboral (compilación ${{ github.run_number }})
+          files: |
+            CalculadoraLaboral.apk
+            CalculadoraLaboral.aab

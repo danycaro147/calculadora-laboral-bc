@@ -1,0 +1,1 @@
+Aquí va lft.json (lo genera tools/lft_to_json.py en la compilación).
