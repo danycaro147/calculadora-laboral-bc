@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 
 import 'app_state.dart';
@@ -9,14 +10,14 @@ import 'legal.dart';
 import 'theme.dart';
 
 enum TipoCalculo {
-  neto('Sueldo neto', 'Lo que recibes después de ISR e IMSS', Icons.payments_outlined,
+  neto('Sueldo neto', 'Lo que recibes después de ISR e IMSS', PhosphorIconsLight.money,
       'ISR 2026'),
-  aguinaldo('Aguinaldo', 'Completo o proporcional al año', Icons.redeem_outlined, 'Art. 87'),
-  vacaciones('Vacaciones', 'Días y prima vacacional', Icons.event_available_outlined,
+  aguinaldo('Aguinaldo', 'Completo o proporcional al año', PhosphorIconsLight.gift, 'Art. 87'),
+  vacaciones('Vacaciones', 'Días y prima vacacional', PhosphorIconsLight.umbrellaSimple,
       'Art. 76'),
-  finiquito('Finiquito', 'Si renuncias o terminas tu contrato', Icons.description_outlined,
+  finiquito('Finiquito', 'Si renuncias o terminas tu contrato', PhosphorIconsLight.fileText,
       'Art. 79'),
-  liquidacion('Liquidación', 'Si te despiden sin causa justificada', Icons.gavel_outlined,
+  liquidacion('Liquidación', 'Si te despiden sin causa justificada', PhosphorIconsLight.gavel,
       'Art. 50');
 
   final String titulo, subtitulo, articulos;
@@ -136,6 +137,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
   @override
   Widget build(BuildContext context) {
     final tk = Tok.of(context);
+    _paso = 0;
     final fechaLabel = switch (t) {
       TipoCalculo.neto => '',
       TipoCalculo.vacaciones => 'Fecha de cálculo',
@@ -144,28 +146,56 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
       TipoCalculo.finiquito => 'Fecha de salida',
     };
 
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: Text(t.titulo)),
       bottomNavigationBar: BottomActionBar(children: [
-        FilledButton(onPressed: _calcular, child: const Text('Calcular')),
+        PrimaryButton(
+          onPressed: _calcular,
+          icon: PhosphorIconsLight.arrowRight,
+          label: 'Calcular',
+        ),
       ]),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         children: [
-          Para(_intro()),
-          const SectionTitle('Salario'),
+          Reveal(
+            child: HeroPanel(
+              padding: const EdgeInsets.all(18),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconTile(t.icono, size: 44),
+                  const SizedBox(width: 14),
+                  Expanded(child: Para(_intro(), size: 14.5, color: tk.text)),
+                ],
+              ),
+            ),
+          ),
+          _step('Tu salario'),
           _Label('Salario bruto'),
           TextField(
             controller: _salario,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
             style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
                 fontFeatures: [FontFeature.tabularFigures()]),
             decoration: InputDecoration(
-              prefixText: r'$  ',
-              suffixText: 'MXN',
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 16, right: 6),
+                child: Text(r'$',
+                    style: TextStyle(
+                        fontSize: 24, fontWeight: FontWeight.w700, color: tk.text3)),
+              ),
+              prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Text('MXN',
+                    style: TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w800, color: tk.text3)),
+              ),
+              suffixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
               hintText: '0.00',
               errorText: _errorSalario,
             ),
@@ -185,7 +215,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
           Text('Sin descuentos de ISR ni IMSS.',
               style: TextStyle(fontSize: 13, color: tk.text3)),
           if (t != TipoCalculo.neto) ...[
-          const SectionTitle('Fechas'),
+          _step('Fechas'),
           _Label('Fecha de ingreso'),
           _DateField(
             value: _ingreso,
@@ -210,7 +240,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
               onChanged: (y) => setState(() => _anio = y),
             ),
             const SizedBox(height: 12),
-            Card(
+            Glass(
               child: SwitchListTile(
                 title: const Text('Ya no trabajo en esa empresa'),
                 subtitle: const Text('Se calcula hasta tu último día'),
@@ -232,7 +262,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
             ),
           ],
           if (_esSalida) ...[
-            const SectionTitle('Adeudos'),
+            _step('Adeudos'),
             GroupCard(indent: 16, children: [
               _Counter(
                   label: 'Días de sueldo sin pagar',
@@ -248,7 +278,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
           ],
           if (t == TipoCalculo.liquidacion) ...[
             const SizedBox(height: 12),
-            Card(
+            Glass(
               child: SwitchListTile(
                 title: const Text('Incluir 20 días por año'),
                 subtitle: const Text(
@@ -258,7 +288,7 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
               ),
             ),
           ],
-          const SectionTitle('Prestaciones'),
+          _step('Prestaciones'),
           GroupCard(indent: 16, children: [
             if (t == TipoCalculo.neto)
               _Counter(
@@ -299,10 +329,17 @@ class _CalcFormScreenState extends State<CalcFormScreen> {
           Text(Legal.avisoCorto,
               textAlign: TextAlign.justify,
               style: TextStyle(fontSize: 12.5, color: tk.text3, height: 1.45)),
+          const SizedBox(height: 20),
+          const MadeByBrainCode(),
         ],
       ),
     );
   }
+
+  int _paso = 0;
+
+  /// Encabezado numerado; los números se recalculan en cada build.
+  Widget _step(String text) => StepTitle(++_paso, text);
 
   String _intro() => switch (t) {
         TipoCalculo.neto =>
@@ -351,55 +388,74 @@ class _Segmented<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Tok.of(context);
-    return Container(
-      height: 46,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-          color: t.surface2,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: t.border)),
-      child: Row(
-        children: [
-          for (final v in values)
-            Expanded(
-              child: Semantics(
-                selected: v == selected,
-                button: true,
-                child: GestureDetector(
-                  onTap: () => onChanged(v),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: v == selected ? t.surface : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      border: v == selected ? Border.all(color: t.border) : null,
-                      boxShadow: v == selected
-                          ? [
-                              BoxShadow(
-                                  color: Colors.black.withAlpha(14),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1))
-                            ]
-                          : null,
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(label(v),
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight:
-                                    v == selected ? FontWeight.w700 : FontWeight.w500,
-                                color: v == selected ? t.primary : t.text2)),
+    final n = values.length;
+    final i = values.indexOf(selected);
+    return Glass(
+      radius: 16,
+      blur: 12,
+      shadow: false,
+      padding: const EdgeInsets.all(4),
+      child: SizedBox(
+        height: 46,
+        child: Stack(
+          children: [
+            // Indicador líquido: viaja con rebote y se estira a medio camino.
+            TweenAnimationBuilder<double>(
+              tween: Tween(end: i.toDouble()),
+              duration: const Duration(milliseconds: 480),
+              curve: Curves.easeOutCubic,
+              builder: (context, v, _) {
+                const mid = 0.0;
+                return Align(
+                  alignment: Alignment(n == 1 ? 0 : -1 + 2 * v / (n - 1), 0),
+                  child: FractionallySizedBox(
+                    widthFactor: (1 / n) * (1 + mid),
+                    heightFactor: 1,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: t.ink,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
-        ],
+            Row(
+              children: [
+                for (final v in values)
+                  Expanded(
+                    child: Semantics(
+                      selected: v == selected,
+                      button: true,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => onChanged(v),
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 220),
+                                style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 14,
+                                    fontWeight:
+                                        v == selected ? FontWeight.w800 : FontWeight.w600,
+                                    color: v == selected ? t.onInk : t.text2),
+                                child: Text(label(v)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -423,18 +479,17 @@ class _DateField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Material(
-          color: t.surface,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: err ? Theme.of(context).colorScheme.error : t.border)),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+        Glass(
+          radius: 18,
+          blur: 12,
+          shadow: false,
+          onTap: onTap,
+          child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
               child: Row(
                 children: [
+                  Icon(PhosphorIconsLight.calendarBlank, size: 20, color: t.text3),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                         value == null
@@ -445,11 +500,10 @@ class _DateField extends StatelessWidget {
                             fontWeight: value == null ? FontWeight.w400 : FontWeight.w600,
                             color: value == null ? t.text3 : t.text)),
                   ),
-                  Icon(Icons.calendar_today_outlined, size: 20, color: t.text2),
+                  Icon(PhosphorIconsLight.caretDown, size: 22, color: t.text3),
                 ],
               ),
             ),
-          ),
         ),
         if (err)
           Padding(
@@ -487,7 +541,7 @@ class _Counter extends StatelessWidget {
             style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(40, 40),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                shape: const CircleBorder()),
             child: Icon(i, size: 18, semanticLabel: tip),
           ),
         );
@@ -507,7 +561,7 @@ class _Counter extends StatelessWidget {
               ],
             ),
           ),
-          btn(Icons.remove, value - step >= min ? () => onChanged(value - step) : null,
+          btn(PhosphorIconsLight.minus, value - step >= min ? () => onChanged(value - step) : null,
               'Menos'),
           SizedBox(
             width: 48,
@@ -519,7 +573,7 @@ class _Counter extends StatelessWidget {
                     color: t.text,
                     fontFeatures: const [FontFeature.tabularFigures()])),
           ),
-          btn(Icons.add, value + step <= max ? () => onChanged(value + step) : null,
+          btn(PhosphorIconsLight.plus, value + step <= max ? () => onChanged(value + step) : null,
               'Más'),
         ],
       ),
@@ -558,6 +612,18 @@ class ResultScreen extends StatelessWidget {
     return b.toString();
   }
 
+  /// Partes que se grafican: los conceptos positivos o, si hay descuentos
+  /// (sueldo neto), lo que recibes frente a cada descuento.
+  List<(String, double)> _segmentos(List<Concepto> money) {
+    final dinero = money.where((c) => !c.esDias && c.monto != 0).toList();
+    final negativos = dinero.where((c) => c.monto < 0).toList();
+    if (negativos.isEmpty) return [for (final c in dinero) (c.nombre, c.monto)];
+    return [
+      ('Recibes', resultado.total),
+      for (final c in negativos) (c.nombre, -c.monto),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Tok.of(context);
@@ -592,20 +658,26 @@ class ResultScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(c.detalle,
+                  textAlign: TextAlign.justify,
                   style: TextStyle(fontSize: 13, color: t.text3, height: 1.4)),
               if (c.articulos.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Wrap(
-                    spacing: 14,
+                    spacing: 8,
+                    runSpacing: 6,
                     children: [
                       for (final a in c.articulos)
                         InkWell(
                           onTap: () => openArticle(context, a),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
+                          borderRadius: BorderRadius.circular(99),
+                          child: Container(
+                            margin: const EdgeInsets.only(top: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                                color: t.primarySoft, borderRadius: BorderRadius.circular(99)),
                             child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.menu_book_outlined, size: 15, color: t.primary),
+                              Icon(PhosphorIconsLight.bookOpenText, size: 14, color: t.primary),
                               const SizedBox(width: 5),
                               Text('LFT art. $a',
                                   style: TextStyle(
@@ -622,12 +694,12 @@ class ResultScreen extends StatelessWidget {
           ),
         );
 
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: const Text('Resultado')),
       bottomNavigationBar: BottomActionBar(children: [
         OutlinedButton.icon(
           onPressed: () => Native.share(_texto()),
-          icon: const Icon(Icons.ios_share_rounded, size: 20),
+          icon: const Icon(PhosphorIconsLight.export, size: 20),
           label: const Text('Compartir'),
         ),
         FilledButton(
@@ -639,9 +711,9 @@ class ResultScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         children: [
           // Resumen
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          Reveal(
+            child: InkCard(
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -650,50 +722,64 @@ class ResultScreen extends StatelessWidget {
                           ? 'NETO MENSUAL ESTIMADO'
                           : '${r.titulo.toUpperCase()} · TOTAL ESTIMADO',
                       style: TextStyle(
-                          fontSize: 12,
-                          letterSpacing: 1,
+                          fontSize: 11.5,
+                          letterSpacing: 1.2,
                           fontWeight: FontWeight.w700,
-                          color: t.text3)),
-                  const SizedBox(height: 10),
+                          color: Colors.white.withAlpha(150))),
+                  const SizedBox(height: 12),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text(dinero(r.total),
-                        style: TextStyle(
-                            fontSize: 36,
+                    child: _CountUp(
+                        value: r.total,
+                        style: const TextStyle(
+                            fontSize: 42,
                             fontWeight: FontWeight.w700,
-                            letterSpacing: -.8,
-                            color: t.primary,
+                            letterSpacing: -1,
+                            color: Colors.white,
                             fontFeatures: tab)),
                   ),
-                  const SizedBox(height: 12),
-                  Container(height: 2, width: 40, color: t.accent),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 18),
                   Row(
                     children: [
-                      _Fact('Salario diario', dinero(salarioDiario)),
-                      if (antiguedad != null)
-                        _Fact('Antigüedad',
-                            '${antiguedad!.toStringAsFixed(antiguedad! < 10 ? 2 : 1)} años'),
+                      Expanded(
+                          child: GlassPill(
+                              onInk: true, label: 'Salario diario', value: dinero(salarioDiario))),
+                      if (antiguedad != null) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GlassPill(
+                              onInk: true,
+                              label: 'Antigüedad',
+                              value:
+                                  '${antiguedad!.toStringAsFixed(antiguedad! < 10 ? 2 : 1)} años'),
+                        ),
+                      ],
                     ],
                   ),
                 ],
               ),
             ),
           ),
+          if (_segmentos(money).length > 1) ...[
+            const SectionTitle('Composición'),
+            _Composicion(segmentos: _segmentos(money)),
+          ],
           const SectionTitle('Desglose'),
-          Card(
-            child: Column(
+          GroupCard(
+            indent: 16,
+            children: [
+              Column(
               children: [
                 for (final (i, c) in money.indexed) ...[
                   if (i > 0) const Divider(indent: 16, endIndent: 16),
                   concepto(c),
                 ],
                 Container(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
                   decoration: BoxDecoration(
-                    color: t.surface2,
-                    border: Border(top: BorderSide(color: t.text.withAlpha(60), width: 1.2)),
+                    color: t.primarySoft,
+                    border: Border(top: BorderSide(color: t.border)),
                   ),
                   child: Row(
                     children: [
@@ -703,7 +789,7 @@ class ResultScreen extends StatelessWidget {
                                   fontSize: 16, fontWeight: FontWeight.w700, color: t.text))),
                       Text(dinero(r.total),
                           style: TextStyle(
-                              fontSize: 17,
+                              fontSize: 18,
                               fontWeight: FontWeight.w800,
                               color: t.text,
                               fontFeatures: tab)),
@@ -712,19 +798,13 @@ class ResultScreen extends StatelessWidget {
                 ),
               ],
             ),
+            ],
           ),
           if (info.isNotEmpty) ...[
             const SectionTitle('Información adicional'),
-            Card(
-              child: Column(
-                children: [
-                  for (final (i, c) in info.indexed) ...[
-                    if (i > 0) const Divider(indent: 16, endIndent: 16),
-                    concepto(c, muted: true),
-                  ],
-                ],
-              ),
-            ),
+            GroupCard(indent: 16, children: [
+              for (final c in info) concepto(c, muted: true),
+            ]),
           ],
           if (r.notas.isNotEmpty) ...[
             const SectionTitle('Notas'),
@@ -750,7 +830,7 @@ class ResultScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Notice(
             legal: true,
-            icon: Icons.balance_outlined,
+            icon: PhosphorIconsLight.scales,
             title: 'Aviso legal',
             text: 'Este cálculo es una estimación informativa y no constituye asesoría '
                 'legal. Antes de firmar un finiquito o presentar un reclamo, consulta a '
@@ -768,33 +848,106 @@ class ResultScreen extends StatelessWidget {
               ]),
             ),
           ),
+          const SizedBox(height: 20),
+          const MadeByBrainCode(),
         ],
       ),
     );
   }
 }
 
-class _Fact extends StatelessWidget {
-  final String label, value;
-  const _Fact(this.label, this.value);
+/// Barra apilada con la proporción de cada concepto y su leyenda.
+class _Composicion extends StatelessWidget {
+  final List<(String, double)> segmentos;
+  const _Composicion({required this.segmentos});
+
 
   @override
   Widget build(BuildContext context) {
     final t = Tok.of(context);
-    return Expanded(
+    final colores = t.ramp;
+    final total = segmentos.fold(0.0, (a, s) => a + s.$2);
+    return Glass(
+      padding: const EdgeInsets.all(18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 12.5, color: t.text3)),
-          const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: t.text,
-                  fontFeatures: const [FontFeature.tabularFigures()])),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: Motion.on(context) ? 0 : 1, end: 1),
+            duration: const Duration(milliseconds: 1100),
+            curve: Curves.easeOutCubic,
+            builder: (context, v, child) => Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(widthFactor: v, child: child),
+            ),
+            child: ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: SizedBox(
+              height: 16,
+              child: Row(
+                children: [
+                  for (final (i, s) in segmentos.indexed)
+                    Expanded(
+                      flex: (s.$2 / total * 1000).round().clamp(1, 1000),
+                      child: Container(
+                        margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
+                        color: colores[i % colores.length],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          ),
+          const SizedBox(height: 14),
+          for (final (i, s) in segmentos.indexed)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                        color: colores[i % colores.length],
+                        borderRadius: BorderRadius.circular(4)),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(s.$1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13.5, color: t.text2)),
+                  ),
+                  Text('${(s.$2 / total * 100).toStringAsFixed(0)} %',
+                      style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: t.text,
+                          fontFeatures: const [FontFeature.tabularFigures()])),
+                ],
+              ),
+            ),
         ],
       ),
+    );
+  }
+}
+
+/// Monto que cuenta desde cero al aparecer; respeta "reducir movimiento".
+class _CountUp extends StatelessWidget {
+  final double value;
+  final TextStyle style;
+  const _CountUp({required this.value, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Motion.on(context)) return Text(dinero(value), style: style);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: value),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (_, v, __) => Text(dinero(v), style: style),
     );
   }
 }

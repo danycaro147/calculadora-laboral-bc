@@ -8,6 +8,7 @@ import 'package:calculadora_laboral/home.dart';
 import 'package:calculadora_laboral/law.dart';
 import 'package:calculadora_laboral/law_screens.dart';
 import 'package:calculadora_laboral/main.dart';
+import 'package:calculadora_laboral/theme.dart';
 import 'package:calculadora_laboral/welcome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +24,11 @@ Future<void> loadFonts() async {
         ..addFont(rootBundle.load('assets/fonts/Lora-Regular.ttf'))
         ..addFont(rootBundle.load('assets/fonts/Lora-SemiBold.ttf')))
       .load();
+  for (final w in ['Light', 'Fill']) {
+    await (FontLoader('packages/phosphor_flutter/Phosphor$w')
+          ..addFont(rootBundle.load('packages/phosphor_flutter/lib/fonts/Phosphor-$w.ttf')))
+        .load();
+  }
   final root = Platform.environment['FLUTTER_ROOT'];
   if (root != null) {
     final f = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf');
@@ -39,6 +45,7 @@ void main() {
   late Ley ley;
 
   setUpAll(() async {
+    Motion.enabled = false; // las animaciones continuas impiden pumpAndSettle
     await loadFonts();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(Native.channel, (call) async {

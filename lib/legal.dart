@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'braincode.dart';
 import 'theme.dart';
@@ -61,7 +62,7 @@ class Legal {
     ),
     (
       'Contacto',
-      'BrainCode México Tech · ${BrainCode.email} · braincode.com.mx'
+      'BrainCode México Tech\n${BrainCode.email}\nbraincode.com.mx'
     ),
   ];
 
@@ -84,12 +85,12 @@ class Legal {
     ),
     (
       'Contacto',
-      'BrainCode México Tech · ${BrainCode.email}'
+      'BrainCode México Tech\n${BrainCode.email}'
     ),
   ];
 }
 
-class LegalPage extends StatelessWidget {
+class LegalPage extends StatefulWidget {
   final String title;
   final String headline;
   final List<(String, String)> sections;
@@ -113,34 +114,232 @@ class LegalPage extends StatelessWidget {
           sections: Legal.privacidad));
 
   @override
+  State<LegalPage> createState() => _LegalPageState();
+}
+
+class _LegalPageState extends State<LegalPage> {
+  final _scroll = ScrollController();
+  late final _keys = [for (final _ in widget.sections) GlobalKey()];
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _goTo(int i) {
+    final ctx = _keys[i].currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(ctx,
+        duration: Motion.on(context) ? const Duration(milliseconds: 650) : Duration.zero,
+        curve: Curves.easeInOutCubic,
+        alignment: .04);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = Tok.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(22, 4, 22, 32),
+    final palabras = widget.sections
+        .fold(0, (n, s) => n + '${s.$1} ${s.$2}'.split(RegExp(r'\s+')).length);
+    final minutos = (palabras / 200).ceil();
+
+    return GlassScaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        // Progreso de lectura.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: AnimatedBuilder(
+            animation: _scroll,
+            builder: (context, _) {
+              final p = _scroll.hasClients && _scroll.position.hasContentDimensions &&
+                      _scroll.position.maxScrollExtent > 0
+                  ? (_scroll.offset / _scroll.position.maxScrollExtent).clamp(0.0, 1.0)
+                  : 0.0;
+              return Container(
+                height: 3,
+                color: t.border,
+                alignment: Alignment.centerLeft,
+                child: FractionallySizedBox(
+                  widthFactor: p,
+                  child: Container(color: t.primary),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+      body: Stack(
         children: [
-          Text(headline,
-              style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -.4,
-                  color: t.text,
-                  height: 1.2)),
-          const SizedBox(height: 6),
-          Text('Última actualización: 30 de octubre de 2026',
-              style: TextStyle(fontSize: 13, color: t.text3)),
-          const SizedBox(height: 10),
-          for (final (i, s) in sections.indexed) ...[
-            const SizedBox(height: 18),
-            Text('${i + 1}. ${s.$1}',
-                style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.w700, color: t.text)),
-            const SizedBox(height: 6),
-            Text(s.$2,
-                textAlign: TextAlign.justify,
-                style: TextStyle(fontSize: 15, height: 1.6, color: t.text2)),
-          ],
+          SingleChildScrollView(
+            controller: _scroll,
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Reveal(
+                  child: Text(widget.headline,
+                      style: TextStyle(
+                          fontFamily: kSerif,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          color: t.text,
+                          height: 1.2)),
+                ),
+                const SizedBox(height: 8),
+                Reveal(
+                  index: 1,
+                  child: Row(children: [
+                    Icon(PhosphorIconsLight.calendarBlank, size: 15, color: t.text3),
+                    const SizedBox(width: 6),
+                    Text('30 de octubre de 2026', style: TextStyle(fontSize: 13, color: t.text3)),
+                    const SizedBox(width: 14),
+                    Icon(PhosphorIconsLight.clock, size: 15, color: t.text3),
+                    const SizedBox(width: 6),
+                    Text('Lectura de $minutos min',
+                        style: TextStyle(fontSize: 13, color: t.text3)),
+                  ]),
+                ),
+                const SizedBox(height: 18),
+                // Índice: lleva a cada sección.
+                Reveal(
+                  index: 2,
+                  child: Glass(
+                    padding: const EdgeInsets.fromLTRB(6, 12, 6, 6),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                          child: Text('CONTENIDO',
+                              style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.3,
+                                  color: t.text3)),
+                        ),
+                        for (final (i, s) in widget.sections.indexed)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => _goTo(i),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              child: Row(children: [
+                                SizedBox(
+                                  width: 26,
+                                  child: Text('${i + 1}'.padLeft(2, '0'),
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: t.primary,
+                                          fontFeatures: const [FontFeature.tabularFigures()])),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(s.$1,
+                                      style: TextStyle(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: t.text)),
+                                ),
+                                Icon(PhosphorIconsLight.arrowDown, size: 16, color: t.text3),
+                              ]),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                for (final (i, s) in widget.sections.indexed)
+                  Padding(
+                    key: _keys[i],
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: ScrollReveal(
+                      child: Glass(
+                        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Container(
+                                width: 28,
+                                height: 28,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: t.primary, width: 1.5)),
+                                child: Text('${i + 1}',
+                                    style: TextStyle(
+                                        color: t.primary,
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(s.$1,
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: t.text)),
+                              ),
+                            ]),
+                            const SizedBox(height: 10),
+                            Text(s.$2,
+                                textAlign: TextAlign.justify,
+                                style: TextStyle(fontSize: 15, height: 1.6, color: t.text2)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                const MadeByBrainCode(),
+              ],
+            ),
+          ),
+          // Volver arriba: aparece al bajar.
+          Positioned(
+            right: 20,
+            bottom: 20,
+            child: AnimatedBuilder(
+              animation: _scroll,
+              builder: (context, child) {
+                final show = _scroll.hasClients && _scroll.offset > 600;
+                return IgnorePointer(
+                  ignoring: !show,
+                  child: AnimatedScale(
+                    scale: show ? 1 : .6,
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutCubic,
+                    child: AnimatedOpacity(
+                      opacity: show ? 1 : 0,
+                      duration: const Duration(milliseconds: 220),
+                      child: child,
+                    ),
+                  ),
+                );
+              },
+              child: DecoratedBox(
+                decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: softShadow(context)),
+                child: Material(
+                  color: t.ink,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => _scroll.animateTo(0,
+                        duration: const Duration(milliseconds: 650),
+                        curve: Curves.easeInOutCubic),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Icon(PhosphorIconsLight.arrowUp,
+                          size: 22, color: t.onInk, semanticLabel: 'Volver arriba'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
