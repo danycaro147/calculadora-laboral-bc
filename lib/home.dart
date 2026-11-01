@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'app_state.dart';
 import 'braincode.dart';
@@ -22,10 +23,9 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final t = Tok.of(context);
     const titles = ['Finiquito MX', 'Ley Federal del Trabajo', 'Ajustes'];
-    return Scaffold(
-      appBar: AppBar(title: Text(titles[_tab])),
+    return GlassScaffold(
+      appBar: _tab == 0 ? null : AppBar(title: Text(titles[_tab])),
       body: IndexedStack(
         index: _tab,
         children: [
@@ -34,27 +34,14 @@ class _HomeShellState extends State<HomeShell> {
           const SettingsTab(),
         ],
       ),
-      bottomNavigationBar: DecoratedBox(
-        decoration: BoxDecoration(border: Border(top: BorderSide(color: t.border))),
-        child: NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (i) => setState(() => _tab = i),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: const [
-            NavigationDestination(
-                icon: Icon(Icons.calculate_outlined),
-                selectedIcon: Icon(Icons.calculate),
-                label: 'Calcular'),
-            NavigationDestination(
-                icon: Icon(Icons.menu_book_outlined),
-                selectedIcon: Icon(Icons.menu_book),
-                label: 'Ley'),
-            NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: 'Ajustes'),
-          ],
-        ),
+      bottomNavigationBar: GlassNavBar(
+        selected: _tab,
+        onChanged: (i) => setState(() => _tab = i),
+        items: const [
+          (PhosphorIconsLight.calculator, PhosphorIconsFill.calculator, 'Calcular'),
+          (PhosphorIconsLight.bookOpenText, PhosphorIconsFill.bookOpenText, 'Ley'),
+          (PhosphorIconsLight.slidersHorizontal, PhosphorIconsFill.slidersHorizontal, 'Ajustes'),
+        ],
       ),
     );
   }
@@ -63,6 +50,9 @@ class _HomeShellState extends State<HomeShell> {
 // ---------------------------------------------------------------------------
 // Calcular
 // ---------------------------------------------------------------------------
+
+void _abrir(BuildContext context, TipoCalculo tipo) => Navigator.of(context)
+    .push(MaterialPageRoute(builder: (_) => CalcFormScreen(tipo: tipo)));
 
 class CalcTab extends StatelessWidget {
   final VoidCallback onOpenLaw;
@@ -73,45 +63,82 @@ class CalcTab extends StatelessWidget {
     final t = Tok.of(context);
     final app = AppScope.of(context);
     final ley = LeyRepo.actual;
+    final top = MediaQuery.paddingOf(context).top;
+    const resto = [
+      TipoCalculo.aguinaldo,
+      TipoCalculo.vacaciones,
+      TipoCalculo.finiquito,
+      TipoCalculo.liquidacion,
+    ];
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+      padding: EdgeInsets.fromLTRB(20, top + 16, 20, 24),
       children: [
-        Text('¿Qué necesitas calcular?',
-            style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -.5,
-                color: t.text,
-                height: 1.2)),
-        const SizedBox(height: 6),
-        Text('Conforme a la Ley Federal del Trabajo y a los valores oficiales '
-            '${ValoresOficiales.anio}.',
-            style: TextStyle(fontSize: 15, color: t.text2, height: 1.45)),
-        const SectionTitle('Calculadoras'),
-        GroupCard(children: [
-          for (final tipo in TipoCalculo.values)
-            RowTile(
-              icon: tipo.icono,
-              title: tipo.titulo,
-              subtitle: tipo.subtitulo,
-              trailingText: tipo.articulos,
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => CalcFormScreen(tipo: tipo))),
+        Row(children: [
+          const AppMark(size: 40),
+          const SizedBox(width: 12),
+          Text('Finiquito MX',
+              style: TextStyle(
+                  fontFamily: kSerif, fontSize: 20, fontWeight: FontWeight.w600, color: t.text)),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: t.glass,
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(color: t.border),
             ),
+            child: Text('Valores ${ValoresOficiales.anio}',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: t.text2)),
+          ),
         ]),
+        const SizedBox(height: 28),
+        Reveal(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('¿Qué necesitas calcular?',
+                  style: TextStyle(
+                      fontFamily: kSerif,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w600,
+                      height: 1.15,
+                      color: t.text)),
+              const SizedBox(height: 8),
+              Text('Conforme a la Ley Federal del Trabajo y a los valores oficiales vigentes.',
+                  style: TextStyle(fontSize: 15, height: 1.45, color: t.text2)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 22),
+        const Reveal(index: 1, child: _FeaturedCalc(tipo: TipoCalculo.neto)),
+        const SizedBox(height: 12),
+        for (var r = 0; r < resto.length; r += 2) ...[
+          if (r > 0) const SizedBox(height: 12),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: Reveal(index: r + 2, child: _CalcCard(tipo: resto[r]))),
+                const SizedBox(width: 12),
+                Expanded(child: Reveal(index: r + 3, child: _CalcCard(tipo: resto[r + 1]))),
+              ],
+            ),
+          ),
+        ],
         const SectionTitle('Consulta'),
         GroupCard(children: [
           RowTile(
-            icon: Icons.menu_book_outlined,
+            icon: PhosphorIconsLight.bookOpenText,
             title: 'Ley Federal del Trabajo',
             subtitle: ley == null
                 ? 'Texto completo con buscador, sin internet'
-                : '${ley.articulos.length} artículos · reforma DOF ${ley.version.replaceAll('-', '/')}',
+                : '${ley.articulos.length} artículos · reforma DOF '
+                    '${ley.version.replaceAll('-', '/')}',
             onTap: onOpenLaw,
           ),
         ]),
-        const SectionTitle('Valores oficiales 2026'),
+        const SectionTitle('Valores oficiales ${ValoresOficiales.anio}'),
         const _OfficialValues(),
         if (app.showPromo) ...[
           const SizedBox(height: 28),
@@ -120,10 +147,97 @@ class CalcTab extends StatelessWidget {
         const SizedBox(height: 24),
         Text(Legal.avisoCorto,
             textAlign: TextAlign.justify,
-            style: TextStyle(fontSize: 12.5, color: t.text3, height: 1.45)),
+            style: TextStyle(fontSize: 12.5, color: t.text3, height: 1.5)),
         const SizedBox(height: 4),
         const MadeByBrainCode(),
       ],
+    );
+  }
+}
+
+/// Calculadora principal destacada en tarjeta de tinta.
+class _FeaturedCalc extends StatelessWidget {
+  final TipoCalculo tipo;
+  const _FeaturedCalc({required this.tipo});
+
+  @override
+  Widget build(BuildContext context) => InkCard(
+        onTap: () => _abrir(context, tipo),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(18),
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: Colors.white.withAlpha(30)),
+                ),
+                child: Icon(tipo.icono, color: Colors.white, size: 22),
+              ),
+              const Spacer(),
+              Text(tipo.articulos,
+                  style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withAlpha(150))),
+            ]),
+            const SizedBox(height: 22),
+            Text(tipo.titulo,
+                style: const TextStyle(
+                    fontFamily: kSerif,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white)),
+            const SizedBox(height: 4),
+            Row(children: [
+              Expanded(
+                child: Text(tipo.subtitulo,
+                    style: TextStyle(fontSize: 14, height: 1.4, color: Colors.white.withAlpha(180))),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                child: const Icon(PhosphorIconsLight.arrowRight, size: 19, color: Brand.ink),
+              ),
+            ]),
+          ],
+        ),
+      );
+}
+
+/// Tarjeta de vidrio de una calculadora.
+class _CalcCard extends StatelessWidget {
+  final TipoCalculo tipo;
+  const _CalcCard({required this.tipo});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Tok.of(context);
+    return Glass(
+      onTap: () => _abrir(context, tipo),
+      padding: const EdgeInsets.fromLTRB(16, 16, 14, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              IconTile(tipo.icono, size: 40),
+              const Spacer(),
+              Text(tipo.articulos,
+                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: t.text3)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(tipo.titulo,
+              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700, color: t.text)),
+          const SizedBox(height: 4),
+          Text(tipo.subtitulo, style: TextStyle(fontSize: 13, height: 1.35, color: t.text2)),
+        ],
+      ),
     );
   }
 }
@@ -134,8 +248,8 @@ class _OfficialValues extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Tok.of(context);
-    Widget row(String a, String c, double v) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+    Widget row(String a, String sub, double v) => Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           child: Row(
             children: [
               Expanded(
@@ -146,7 +260,7 @@ class _OfficialValues extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w600, color: t.text)),
                     const SizedBox(height: 2),
-                    Text(c, style: TextStyle(fontSize: 13, color: t.text3)),
+                    Text(sub, style: TextStyle(fontSize: 12.5, color: t.text3)),
                   ],
                 ),
               ),
@@ -198,7 +312,7 @@ class SettingsTab extends StatelessWidget {
         const SectionTitle('Apariencia', padding: EdgeInsets.fromLTRB(4, 12, 4, 10)),
         GroupCard(children: [
           sw(
-              isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+              isDark ? PhosphorIconsLight.moon : PhosphorIconsLight.sun,
               'Tema oscuro',
               followSystem ? 'Lo define tu teléfono' : (isDark ? 'Activado' : 'Desactivado'),
               isDark,
@@ -206,7 +320,7 @@ class SettingsTab extends StatelessWidget {
                   ? null
                   : (v) => app.setThemeMode(v ? ThemeMode.dark : ThemeMode.light)),
           sw(
-              Icons.brightness_auto_outlined,
+              PhosphorIconsLight.circleHalf,
               'Usar el tema del teléfono',
               'Cambia automáticamente entre claro y oscuro',
               followSystem,
@@ -217,20 +331,20 @@ class SettingsTab extends StatelessWidget {
         const SectionTitle('Información legal'),
         GroupCard(children: [
           RowTile(
-              icon: Icons.gavel_outlined,
+              icon: PhosphorIconsLight.gavel,
               title: 'Términos de uso',
               onTap: () => Navigator.of(context).push(LegalPage.terms())),
           RowTile(
-              icon: Icons.lock_outline,
+              icon: PhosphorIconsLight.lock,
               title: 'Aviso de privacidad',
               onTap: () => Navigator.of(context).push(LegalPage.privacy())),
           RowTile(
-              icon: Icons.account_balance_outlined,
+              icon: PhosphorIconsLight.bank,
               title: 'Fuente oficial de la ley',
               subtitle: 'Cámara de Diputados',
               onTap: () => Native.openUrl(Legal.fuenteLey)),
           RowTile(
-              icon: Icons.support_agent_outlined,
+              icon: PhosphorIconsLight.headset,
               title: 'Asesoría gratuita PROFEDET',
               subtitle: Legal.profedetTel,
               onTap: () => Native.openUrl(Legal.profedetUrl)),
@@ -238,7 +352,7 @@ class SettingsTab extends StatelessWidget {
         const SectionTitle('Desarrollador'),
         GroupCard(children: [
           RowTile(
-              icon: Icons.business_outlined,
+              icon: PhosphorIconsLight.buildings,
               title: BrainCode.name,
               subtitle: 'Acerca de quienes desarrollamos esta app',
               onTap: () => Navigator.of(context)
@@ -253,6 +367,8 @@ class SettingsTab extends StatelessWidget {
             '© 2026 ${BrainCode.name}'
             '${app.appVersion.isNotEmpty ? ' · Versión ${app.appVersion}' : ''}',
             style: TextStyle(fontSize: 12.5, color: t.text3)),
+        const SizedBox(height: 20),
+        const MadeByBrainCode(),
       ],
     );
   }

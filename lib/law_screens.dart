@@ -1,6 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'app_state.dart';
+import 'braincode.dart';
 import 'law.dart';
 import 'legal.dart';
 import 'theme.dart';
@@ -41,6 +45,18 @@ const temasFrecuentes = [
   ('Terminación', '53'),
 ];
 
+String _romano(int n) {
+  const v = [(10, 'X'), (9, 'IX'), (5, 'V'), (4, 'IV'), (1, 'I')];
+  final b = StringBuffer();
+  for (final (k, r) in v) {
+    while (n >= k) {
+      b.write(r);
+      n -= k;
+    }
+  }
+  return b.toString();
+}
+
 String _tituloCorto(String t) => t.split(' · ').first;
 String _tituloNombre(String t) {
   final p = t.split(' · ');
@@ -76,7 +92,7 @@ class _LawTabState extends State<LawTab> {
           return const Padding(
             padding: EdgeInsets.all(20),
             child: Notice(
-                icon: Icons.error_outline,
+                icon: PhosphorIconsLight.warningCircle,
                 text: 'No se pudo cargar el texto de la ley.'),
           );
         }
@@ -92,12 +108,12 @@ class _LawTabState extends State<LawTab> {
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Buscar palabra o número de artículo',
-                prefixIcon: Icon(Icons.search, color: t.text3),
+                prefixIcon: Icon(PhosphorIconsLight.magnifyingGlass, color: t.text3),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
                         tooltip: 'Borrar',
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(PhosphorIconsLight.x),
                         onPressed: () => setState(() {
                           _q.clear();
                           _query = '';
@@ -113,40 +129,72 @@ class _LawTabState extends State<LawTab> {
                 style: TextStyle(fontSize: 13, color: t.text3)),
             if (_query.trim().isEmpty) ...[
               const SectionTitle('Temas frecuentes'),
-              GroupCard(indent: 16, children: [
-                for (final tm in temasFrecuentes)
-                  InkWell(
-                    onTap: () => openArticle(context, tm.$2),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(tm.$1,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final tm in temasFrecuentes)
+                    Glass(
+                      radius: 99,
+                      blur: 10,
+                      shadow: false,
+                      onTap: () => openArticle(context, tm.$2),
+                      child: InkWell(
+                        customBorder: const StadiumBorder(),
+                        onTap: null,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 9, 8, 9),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Text(tm.$1,
                                 style: TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: t.text)),
-                          ),
-                          Text('Art. ${tm.$2}',
-                              style: TextStyle(fontSize: 13, color: t.text3)),
-                          Icon(Icons.chevron_right_rounded, color: t.text3),
-                        ],
+                            const SizedBox(width: 8),
+                            Container(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                  color: t.primarySoft,
+                                  borderRadius: BorderRadius.circular(99)),
+                              child: Text(tm.$2,
+                                  style: TextStyle(
+                                      color: t.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700)),
+                            ),
+                          ]),
+                        ),
                       ),
                     ),
-                  ),
-              ]),
+                ],
+              ),
               const SectionTitle('Índice'),
-              GroupCard(indent: 16, children: [
-                for (final tt in ley.titulos)
+              GroupCard(indent: 66, children: [
+                for (final (n, tt) in ley.titulos.indexed)
                   InkWell(
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => TitleScreen(
                             ley: ley, start: tt.$2, count: tt.$3, titulo: tt.$1))),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+                      padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
                       child: Row(
                         children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                                color: t.primarySoft,
+                                borderRadius: BorderRadius.circular(12)),
+                            child: Text(_romano(n + 1),
+                                style: TextStyle(
+                                    fontFamily: kSerif,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: t.primary)),
+                          ),
+                          const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +220,7 @@ class _LawTabState extends State<LawTab> {
                           ),
                           Text('${tt.$3}',
                               style: TextStyle(fontSize: 13, color: t.text3)),
-                          Icon(Icons.chevron_right_rounded, color: t.text3),
+                          Icon(PhosphorIconsLight.caretRight, color: t.text3),
                         ],
                       ),
                     ),
@@ -209,6 +257,7 @@ class _LawTabState extends State<LawTab> {
                                     color: t.primary)),
                             const SizedBox(height: 4),
                             Text(h.fragmento,
+                                textAlign: TextAlign.justify,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -253,12 +302,14 @@ class _SourceNote extends StatelessWidget {
           onPressed: () => Native.openUrl(Legal.fuenteLey),
           child: const Text('Consultar fuente oficial'),
         ),
+        const SizedBox(height: 12),
+        const MadeByBrainCode(),
       ],
     );
   }
 }
 
-class TitleScreen extends StatelessWidget {
+class TitleScreen extends StatefulWidget {
   final Ley ley;
   final int start, count;
   final String titulo;
@@ -270,60 +321,280 @@ class TitleScreen extends StatelessWidget {
       required this.titulo});
 
   @override
+  State<TitleScreen> createState() => _TitleScreenState();
+}
+
+class _TitleScreenState extends State<TitleScreen> {
+  final _q = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
+  }
+
+  /// Capítulos con los índices de sus artículos (filtrados por la búsqueda).
+  List<(String, List<int>)> _grupos() {
+    final q = normalizar(_query.trim());
+    final out = <(String, List<int>)>[];
+    for (var i = widget.start; i < widget.start + widget.count; i++) {
+      final a = widget.ley.articulos[i];
+      if (q.isNotEmpty && !normalizar(a.id).contains(q) && !a.norm.contains(q)) continue;
+      if (out.isEmpty || out.last.$1 != a.capitulo) out.add((a.capitulo, []));
+      out.last.$2.add(i);
+    }
+    return out;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = Tok.of(context);
-    final groups = <(String, List<int>)>[];
-    for (var i = start; i < start + count; i++) {
-      final c = ley.articulos[i].capitulo;
-      if (groups.isEmpty || groups.last.$1 != c) groups.add((c, []));
-      groups.last.$2.add(i);
-    }
-    return Scaffold(
-      appBar: AppBar(title: Text(_tituloCorto(titulo))),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-        children: [
-          Text(_tituloNombre(titulo),
-              style: TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w700, color: t.text, height: 1.25)),
-          const SizedBox(height: 4),
-          Text('$count artículos', style: TextStyle(fontSize: 14, color: t.text3)),
-          for (final g in groups) ...[
-            if (g.$1.isNotEmpty) SectionTitle(g.$1.replaceAll(' · ', ' — ')),
-            if (g.$1.isEmpty) const SizedBox(height: 16),
-            GroupCard(indent: 16, children: [
-              for (final i in g.$2)
-                InkWell(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => ArticleScreen(ley: ley, index: i))),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 72,
-                          child: Text('Art. ${ley.articulos[i].id}',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: t.primary)),
-                        ),
-                        Expanded(
-                          child: Text(
-                              ley.articulos[i].parrafos.isEmpty
-                                  ? ''
-                                  : ley.articulos[i].parrafos.first,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 14, color: t.text2, height: 1.4)),
-                        ),
-                      ],
+    final grupos = _grupos();
+    final capitulos = {
+      for (var i = widget.start; i < widget.start + widget.count; i++)
+        widget.ley.articulos[i].capitulo
+    }.where((c) => c.isNotEmpty).length;
+    final total = grupos.fold(0, (n, g) => n + g.$2.length);
+
+    return GlassScaffold(
+      appBar: AppBar(title: Text(_tituloCorto(widget.titulo))),
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Reveal(
+                    child: Text(
+                        _tituloNombre(widget.titulo).isEmpty
+                            ? _tituloCorto(widget.titulo)
+                            : _tituloNombre(widget.titulo),
+                        style: TextStyle(
+                            fontFamily: kSerif,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w600,
+                            color: t.text,
+                            height: 1.2)),
+                  ),
+                  const SizedBox(height: 12),
+                  Reveal(
+                    index: 1,
+                    child: Wrap(spacing: 8, runSpacing: 8, children: [
+                      _Stat(PhosphorIconsLight.article, '${widget.count} artículos'),
+                      if (capitulos > 0)
+                        _Stat(PhosphorIconsLight.stack,
+                            '$capitulos capítulo${capitulos == 1 ? '' : 's'}'),
+                    ]),
+                  ),
+                  const SizedBox(height: 16),
+                  Reveal(
+                    index: 2,
+                    child: TextField(
+                      controller: _q,
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: 'Filtrar por número o palabra',
+                        prefixIcon: Icon(PhosphorIconsLight.magnifyingGlass, color: t.text3),
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Borrar',
+                                icon: const Icon(PhosphorIconsLight.x),
+                                onPressed: () => setState(() {
+                                  _q.clear();
+                                  _query = '';
+                                }),
+                              ),
+                      ),
+                      onChanged: (v) => setState(() => _query = v),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Reveal(
+                    index: 3,
+                    child: Row(children: [
+                      Icon(PhosphorIconsLight.handTap, size: 16, color: t.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                            _query.isEmpty
+                                ? 'Toca un artículo para leerlo completo'
+                                : '$total resultado${total == 1 ? '' : 's'} en este título',
+                            style: TextStyle(fontSize: 13, color: t.text2)),
+                      ),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (grupos.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
+                child: Text('No hay artículos que coincidan con “$_query”.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, color: t.text2)),
+              ),
+            ),
+          for (final g in grupos)
+            SliverMainAxisGroup(slivers: [
+              if (g.$1.isNotEmpty)
+                SliverPersistentHeader(pinned: true, delegate: _ChapterHeader(g.$1)),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                sliver: SliverList.builder(
+                  itemCount: g.$2.length,
+                  itemBuilder: (context, k) {
+                    final i = g.$2[k];
+                    return Padding(
+                      key: ValueKey(i),
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: ScrollReveal(
+                        child: _ArticleCard(
+                          a: widget.ley.articulos[i],
+                          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => ArticleScreen(
+                                  ley: widget.ley, index: i, highlight: _query))),
+                        ),
+                      ),
+                    );
+                  },
                 ),
+              ),
             ]),
-          ],
+          const SliverPadding(
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 28),
+            sliver: SliverToBoxAdapter(child: MadeByBrainCode()),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _Stat(this.icon, this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Tok.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: t.glass,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: t.border),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 15, color: t.text2),
+        const SizedBox(width: 6),
+        Text(text, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: t.text2)),
+      ]),
+    );
+  }
+}
+
+/// Encabezado de capítulo que se queda fijo arriba mientras se recorren sus artículos.
+class _ChapterHeader extends SliverPersistentHeaderDelegate {
+  final String capitulo;
+  _ChapterHeader(this.capitulo);
+
+  static const _h = 58.0;
+  @override
+  double get minExtent => _h;
+  @override
+  double get maxExtent => _h;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final t = Tok.of(context);
+    final partes = capitulo.split(' · ');
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: overlapsContent ? t.glass : Colors.transparent,
+            border: Border(
+                bottom: BorderSide(color: overlapsContent ? t.border : Colors.transparent)),
+          ),
+          padding: const EdgeInsets.fromLTRB(22, 8, 20, 8),
+          alignment: Alignment.centerLeft,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(partes.first.toUpperCase(),
+                  style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w700,
+                      color: t.primary)),
+              if (partes.length > 1)
+                Text(partes.sublist(1).join(' '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: t.text)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _ChapterHeader old) => old.capitulo != capitulo;
+}
+
+/// Tarjeta de artículo: número completo en una etiqueta (sin cortes), vista
+/// previa a todo lo ancho y una flecha que indica que se puede abrir.
+class _ArticleCard extends StatelessWidget {
+  final Articulo a;
+  final VoidCallback onTap;
+  const _ArticleCard({required this.a, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Tok.of(context);
+    return PressableCard(
+      onTap: onTap,
+      semanticLabel: 'Abrir ${a.nombre}',
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                    color: t.primarySoft, borderRadius: BorderRadius.circular(8)),
+                child: Text('Art. ${a.id}',
+                    softWrap: false,
+                    style: TextStyle(
+                        fontSize: 13.5, fontWeight: FontWeight.w700, color: t.primary)),
+              ),
+              const Spacer(),
+              Text('Leer',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: t.text3)),
+              const SizedBox(width: 4),
+              Icon(PhosphorIconsLight.caretRight, size: 16, color: t.text3),
+            ]),
+            const SizedBox(height: 10),
+            Text(a.parrafos.isEmpty ? 'Sin texto.' : a.parrafos.first,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.justify,
+                style: TextStyle(fontSize: 14.5, color: t.text2, height: 1.45)),
+          ],
+        ),
       ),
     );
   }
@@ -393,19 +664,19 @@ class _ArticleScreenState extends State<ArticleScreen> {
         fontFamily: kSerif, fontSize: 17 * _scale, height: 1.65, color: t.text);
     final hl = t.accent.withAlpha(70);
 
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(
         title: const Text('Ley Federal del Trabajo'),
         actions: [
           IconButton(
             tooltip: 'Reducir texto',
             onPressed: _scale > .85 ? () => setState(() => _scale -= .1) : null,
-            icon: const Icon(Icons.text_decrease_outlined),
+            icon: const Icon(PhosphorIconsLight.magnifyingGlassMinus),
           ),
           IconButton(
             tooltip: 'Aumentar texto',
             onPressed: _scale < 1.6 ? () => setState(() => _scale += .1) : null,
-            icon: const Icon(Icons.text_increase_outlined),
+            icon: const Icon(PhosphorIconsLight.magnifyingGlassPlus),
           ),
           IconButton(
             tooltip: 'Compartir',
@@ -413,7 +684,7 @@ class _ArticleScreenState extends State<ArticleScreen> {
                 '${a.nombre} de la Ley Federal del Trabajo\n\n'
                 '${a.parrafos.join('\n\n')}\n\n'
                 'Última reforma DOF ${ley.versionLegible}. Fuente: Cámara de Diputados.'),
-            icon: const Icon(Icons.ios_share_outlined),
+            icon: const Icon(PhosphorIconsLight.export),
           ),
           const SizedBox(width: 4),
         ],
@@ -421,13 +692,13 @@ class _ArticleScreenState extends State<ArticleScreen> {
       bottomNavigationBar: BottomActionBar(children: [
         OutlinedButton.icon(
           onPressed: _i > 0 ? () => _go(_i - 1) : null,
-          icon: const Icon(Icons.chevron_left_rounded),
+          icon: const Icon(PhosphorIconsLight.caretLeft),
           label: Text(_i > 0 ? 'Art. ${ley.articulos[_i - 1].id}' : 'Inicio'),
         ),
         OutlinedButton.icon(
           onPressed: _i < ley.articulos.length - 1 ? () => _go(_i + 1) : null,
           iconAlignment: IconAlignment.end,
-          icon: const Icon(Icons.chevron_right_rounded),
+          icon: const Icon(PhosphorIconsLight.caretRight),
           label: Text(_i < ley.articulos.length - 1
               ? 'Art. ${ley.articulos[_i + 1].id}'
               : 'Fin'),
@@ -454,38 +725,50 @@ class _ArticleScreenState extends State<ArticleScreen> {
           const SizedBox(height: 18),
           Text(a.nombre,
               style: TextStyle(
-                  fontFamily: kSerif,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w600,
-                  color: t.text)),
+                  fontFamily: kSerif, fontSize: 32, fontWeight: FontWeight.w600, color: t.text)),
           const SizedBox(height: 10),
           Align(
               alignment: Alignment.centerLeft,
-              child: Container(height: 2, width: 40, color: t.accent)),
+              child: Container(
+                  height: 3,
+                  width: 48,
+                  decoration: BoxDecoration(
+                      color: t.accent, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 20),
-          for (final p in a.parrafos)
-            Padding(
-              padding: EdgeInsets.only(
-                  bottom: 14,
-                  left: RegExp(r'^([IVXLC]+\.|[a-zñ]\))\s').hasMatch(p) ? 14 : 0),
-              child: SelectableText.rich(
-                TextSpan(style: body, children: _spans(p, hl)),
-                textAlign: TextAlign.justify,
+          Reveal(
+            key: ValueKey(_i),
+            child: Glass(
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final p in a.parrafos)
+                    Padding(
+                      padding: EdgeInsets.only(
+                          bottom: 14,
+                          left: RegExp(r'^([IVXLC]+\.|[a-zñ]\))\s').hasMatch(p) ? 14 : 0),
+                      child: SelectableText.rich(
+                        TextSpan(style: body, children: _spans(p, hl)),
+                        textAlign: TextAlign.justify,
+                      ),
+                    ),
+                  if (a.notas.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    for (final n in a.notas)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(n,
+                            style: TextStyle(
+                                fontFamily: kSerif,
+                                fontSize: 13,
+                                color: t.text3,
+                                fontStyle: FontStyle.italic)),
+                      ),
+                  ],
+                ],
               ),
             ),
-          if (a.notas.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            for (final n in a.notas)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(n,
-                    style: TextStyle(
-                        fontFamily: kSerif,
-                        fontSize: 13,
-                        color: t.text3,
-                        fontStyle: FontStyle.italic)),
-              ),
-          ],
+          ),
           const SizedBox(height: 20),
           const Divider(),
           const SizedBox(height: 12),
